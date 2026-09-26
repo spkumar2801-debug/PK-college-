@@ -1,24 +1,25 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
+import { ArrowUpRight } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { ContactBand, SectionHeading } from "@/components/site/SiteLayout";
+import { departments, imagery, site } from "@/data/site";
 
-// No head() here: the home route inherits title/description/og/twitter from
-// __root.tsx, and ships no og:image so serve-time hosting can inject the
-// project's social preview (explicit og:image or latest screenshot).
 export const Route = createFileRoute("/")({
-  component: Index,
+  head: () => ({ meta: [
+    { title: "PK Technology of Engineering | Vijayawada" },
+    { name: "description", content: "Discover PK Technology of Engineering: academic pathways, campus life, updates and admissions enquiries in Vijayawada, Andhra Pradesh." },
+    { property: "og:title", content: "PK Technology of Engineering | Vijayawada" },
+    { property: "og:description", content: "Explore engineering education and campus life at PK Technology of Engineering." },
+    { property: "og:type", content: "website" }, { name: "twitter:card", content: "summary_large_image" },
+  ] }), component: Home,
 });
-
-// IMPORTANT: Replace this placeholder. See ./README.md for routing conventions.
-function Index() {
-  return (
-    <div
-      className="flex min-h-screen items-center justify-center"
-      style={{ backgroundColor: "#fcfbf8" }}
-    >
-      <img
-        data-lovable-blank-page-placeholder="REMOVE_THIS"
-        src="https://cdn.gpteng.co/blank-app-v1.svg"
-        alt="Your app will live here!"
-      />
-    </div>
-  );
-}
+function Home() { return <>
+  <section className="hero"><img className="hero-image" src={imagery.campusMain} width={1536} height={1024} alt="Illustrative architectural visualization of a contemporary engineering campus" /><div className="hero-shade" /><div className="site-container hero-content"><div className="eyebrow light-eyebrow"><span className="eyebrow-line" /> A place to imagine what’s next</div><h1>PK Technology<br /><em>of Engineering.</em></h1><p>Engineering minds. Meaningful futures. Explore a learning environment shaped by curiosity, practice, and possibility near Vijayawada.</p><div className="hero-actions"><Button asChild size="xl" variant="hero"><Link to="/academics">Explore academics <ArrowUpRight /></Link></Button><Button asChild size="xl" variant="heroOutline"><Link to="/contact">Enquire now <ArrowUpRight /></Link></Button></div><span className="hero-index">01 / A new perspective on engineering</span></div></section>
+  <div className="intro-strip"><div className="site-container intro-strip-inner"><strong>Built for the thinkers and makers of tomorrow.</strong><span>Engineering-led education</span><span>Vijayawada · Andhra Pradesh</span></div></div>
+  <section className="section"><div className="site-container split-section"><div className="feature-image"><img src={imagery.campusCourtyard} loading="lazy" width={1200} height={912} alt="Illustrative visualization of an open academic courtyard" /><span className="feature-image-label">A setting for possibility ↗</span></div><div className="split-copy"><div className="eyebrow"><span className="eyebrow-line" /> About the institution</div><h2>Ideas take shape when curiosity finds a place to grow.</h2><p>At PK Technology of Engineering, the focus is on creating space for academic exploration, hands-on learning, and purposeful progress. Discover the thinking behind our approach and the environment we aim to build.</p><Button asChild variant="outline" size="lg"><Link to="/about">Discover our story <ArrowUpRight /></Link></Button></div></div></section>
+  <section className="section section-paper"><div className="site-container"><SectionHeading eyebrow="Academic pathways" title="Find your field. Shape your future." description="Explore the disciplines at the heart of engineering and discover where your interests can lead." action={<Link to="/academics" className="text-link">View academics <ArrowUpRight size={16} /></Link>} /><div className="department-grid">{departments.map(d => <Link to="/academics" key={d.code} className="department-tile"><span className="tile-number">/{d.code}</span><h3>{d.title}</h3><span className="tile-bottom"><span>{d.focus}</span><ArrowUpRight size={18} /></span></Link>)}</div><p className="sample-note" style={{ marginTop: 22 }}>Illustrative academic areas; confirm official programmes with the college.</p></div></section>
+  <section className="section"><div className="site-container"><SectionHeading eyebrow="Beyond the classroom" title="The stories still to be told." description="A place for milestones, career journeys, and the moments that define campus life." /><div className="preview-row"><div className="preview-panel"><span className="small-label">01 / Recognition</span><h3>Achievements</h3><p>Follow academic and community milestones as official stories become available.</p><Link to="/achievements" className="text-link">Explore achievements <ArrowUpRight size={16} /></Link></div><div className="preview-panel"><span className="small-label">02 / Careers</span><h3>Placements</h3><p>Find verified placement information, recruiter details, and graduate stories when published.</p><Link to="/placements" className="text-link">Explore placements <ArrowUpRight size={16} /></Link></div></div></div></section>
+  <section className="section section-paper"><div className="site-container"><SectionHeading eyebrow="Stay connected" title="What's happening on campus." /><div className="preview-row"><div className="preview-panel"><span className="small-label">Events</span><h3>Gather. Learn. Connect.</h3><p>Upcoming events and campus activities will appear here once announced.</p><Link className="text-link" to="/events">View events <ArrowUpRight size={16} /></Link></div><div className="preview-panel"><span className="small-label">Announcements</span><h3>The latest from PK.</h3><p>Official notices and important updates will be shared as they are published.</p><Link className="text-link" to="/announcements">Read announcements <ArrowUpRight size={16} /></Link></div></div></div></section>
+  <section className="section"><div className="site-container"><SectionHeading eyebrow="A closer look" title="Spaces for discovery." action={<Link to="/gallery" className="text-link">Explore gallery <ArrowUpRight size={16} /></Link>} /><div className="gallery-preview"><img src={imagery.campusMain} loading="lazy" width={1536} height={1024} alt="Illustrative engineering campus architecture" /><img src={imagery.electronicsLab} loading="lazy" width={1200} height={912} alt="Illustrative electronics learning laboratory" /><img src={imagery.workshop} loading="lazy" width={1200} height={912} alt="Illustrative mechanical engineering workshop" /></div><p className="sample-note" style={{ marginTop: 22 }}>Images are conceptual visualizations, not photographs of the college.</p></div></section>
+  <ContactBand />
+</>; }
