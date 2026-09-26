@@ -1,0 +1,4 @@
+- [ ] Build public site routes, navigation, footer, and responsive visual system.
+- [ ] Add honest sample content, gallery interaction, contact UI, and page metadata.
+- [ ] Establish typed content/Firebase and protected admin foundations without credentials.
+- [ ] Verify public pages on desktop and mobile.
