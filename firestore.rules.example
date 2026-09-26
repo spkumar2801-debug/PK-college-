@@ -1,0 +1,18 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function isAdmin() {
+      return request.auth != null &&
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true;
+    }
+    match /admins/{userId} {
+      allow read: if request.auth != null && request.auth.uid == userId;
+      allow write: if false; // Provision admins out of band; never self-assign.
+    }
+    match /{collection}/{document} {
+      allow read: if collection in ['siteSettings', 'about', 'academics', 'achievements', 'placements', 'gallery', 'events', 'announcements'] && resource.data.status == 'published';
+      allow write: if isAdmin() && collection in ['siteSettings', 'about', 'academics', 'achievements', 'placements', 'gallery', 'events', 'announcements'];
+    }
+  }
+}
