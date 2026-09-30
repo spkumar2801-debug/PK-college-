@@ -1,0 +1,84 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // Authenticated check
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+
+    // Role check: active admin record in /admins/{uid}
+    function isAdmin() {
+      return isAuthenticated() && (
+        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
+        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true
+      );
+    }
+
+    // Administrative accounts collection
+    match /admins/{userId} {
+      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+      // Allows first authorized user to bootstrap their admin profile or existing admins to provision
+      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    }
+
+    // Public CMS Data Collections:
+    // Public visitors: Read-only access
+    // Authenticated staff: Write access
+    match /siteSettings/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /homepage/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /departments/{slug} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /facilities/{facId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /about/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /academics/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /placements/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /announcements/{annId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /events/{eventId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    match /gallery/{itemId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
+    // Prospective Student Admission Enquiries:
+    // Public visitors can submit (create); only authenticated staff can read, update status, or delete.
+    match /enquiries/{enquiryId} {
+      allow create: if true;
+      allow read, update, delete: if isAuthenticated();
+    }
+  }
+}

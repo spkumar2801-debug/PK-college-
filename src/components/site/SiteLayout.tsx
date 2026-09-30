@@ -1,43 +1,128 @@
+import { type ReactNode, useEffect } from "react";
 import { Link, useRouterState } from "@tanstack/react-router";
-import { ArrowUpRight, Menu, X } from "lucide-react";
-import { useEffect, useState, type ReactNode } from "react";
-import { Button } from "@/components/ui/button";
-import { site } from "@/data/site";
+import { ChevronRight, Home as HomeIcon } from "lucide-react";
+import { CollegeHeader } from "@/components/site/CollegeHeader";
+import { CollegeFooter } from "@/components/site/CollegeFooter";
+import { useCollegeStore } from "@/lib/college-store";
+import { useScrollReveal } from "@/hooks/useScrollReveal";
 
-const links = [
-  ["About", "/about"], ["Academics", "/academics"], ["Achievements", "/achievements"],
-  ["Placements", "/placements"], ["Gallery", "/gallery"], ["Events", "/events"], ["News", "/announcements"],
-] as const;
-
-export function SiteLayout({ children }: { children: ReactNode }) {
-  const [open, setOpen] = useState(false);
+export function PublicLayout({ children }: { children: ReactNode }) {
+  const store = useCollegeStore();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  useEffect(() => { setOpen(false); }, [pathname]);
-  return <div className="min-h-screen bg-background text-foreground font-sans">
-    <div className="topline"><div className="site-container flex items-center justify-between gap-4"><span>Vijayawada, Andhra Pradesh</span><a href={`mailto:${site.email}`} className="hidden sm:block hover:underline">{site.email}</a><span className="sm:hidden">Engineering education</span></div></div>
-    <header className="site-header">
-      <div className="site-container header-inner">
-        <Link to="/" aria-label="PK Technology of Engineering home" className="brand"><span className="brand-mark">PK<span className="brand-mark-dot">.</span></span><span className="brand-copy"><strong>PK TECHNOLOGY</strong><small>OF ENGINEERING</small></span></Link>
-        <nav aria-label="Main navigation" className="desktop-nav">{links.map(([label, href]) => <Link key={href} to={href} className="nav-link" activeProps={{ className: "nav-link active" }}>{label}</Link>)}</nav>
-        <div className="header-actions"><Button asChild variant="header" size="sm"><Link to="/contact">Enquire now <ArrowUpRight /></Link></Button><Button variant="iconPlain" size="icon" className="mobile-toggle" aria-label={open ? "Close menu" : "Open menu"} aria-expanded={open} onClick={() => setOpen(!open)}>{open ? <X /> : <Menu />}</Button></div>
+  useScrollReveal();
+
+  useEffect(() => {
+    const customFavicon = store.siteSettings?.faviconUrl || store.siteSettings?.logoUrl;
+    if (customFavicon && typeof document !== "undefined") {
+      const link = document.querySelector("link[rel*='icon']") as HTMLLinkElement;
+      if (link) {
+        link.href = customFavicon;
+      }
+    }
+  }, [store.siteSettings?.faviconUrl, store.siteSettings?.logoUrl]);
+
+  // Double-guard: NEVER render public website header, news ticker, or footer on /admin routes
+  if (pathname.startsWith("/admin")) {
+    return <>{children}</>;
+  }
+
+  return (
+    <div className="min-h-screen flex flex-col bg-[#f8fafc] text-[#0f172a] font-sans">
+      <CollegeHeader />
+      <main className="flex-1 w-full">{children}</main>
+      <CollegeFooter />
+    </div>
+  );
+}
+
+export const SiteLayout = PublicLayout;
+
+export interface BreadcrumbItem {
+  label: string;
+  href?: string;
+}
+
+export function InstitutionalPageBanner({
+  title,
+  subtitle,
+  breadcrumbs = [],
+}: {
+  title: string;
+  subtitle?: string;
+  breadcrumbs?: BreadcrumbItem[];
+}) {
+  return (
+    <section className="bg-[#0b224d] text-white border-b-4 border-[#d97706] py-7 sm:py-10 md:py-12 relative overflow-hidden">
+      <div className="absolute inset-0 opacity-10 bg-[radial-gradient(#fde047_1px,transparent_1px)] [background-size:16px_16px] pointer-events-none" />
+      <div className="college-container relative z-10">
+        {breadcrumbs.length > 0 && (
+          <nav aria-label="Breadcrumb" className="flex items-center flex-wrap gap-1.5 text-xs text-amber-200 mb-2 sm:mb-3">
+            <Link to="/" className="hover:text-white flex items-center gap-1">
+              <HomeIcon size={12} />
+              <span>Home</span>
+            </Link>
+            {breadcrumbs.map((b, idx) => (
+              <span key={idx} className="flex items-center gap-1.5">
+                <ChevronRight size={12} className="text-slate-400" />
+                {b.href ? (
+                  <Link to={b.href} className="hover:text-white">
+                    {b.label}
+                  </Link>
+                ) : (
+                  <span className="text-white font-medium">{b.label}</span>
+                )}
+              </span>
+            ))}
+          </nav>
+        )}
+
+        <h1 className="text-xl sm:text-2xl md:text-4xl font-extrabold tracking-tight text-white mb-2">
+          {title}
+        </h1>
+        {subtitle && (
+          <p className="text-slate-200 text-xs sm:text-sm md:text-base max-w-3xl leading-relaxed">
+            {subtitle}
+          </p>
+        )}
       </div>
-      {open && <nav aria-label="Mobile navigation" className="mobile-nav">{links.map(([label, href]) => <Link key={href} to={href}>{label}<ArrowUpRight size={16} /></Link>)}<Link to="/contact">Contact <ArrowUpRight size={16} /></Link></nav>}
-    </header>
-    <main key={pathname} className="page-enter">{children}</main>
-    <footer className="footer"><div className="site-container"><div className="footer-main"><div><Link to="/" className="footer-brand">PK<span>.</span></Link><p>Thoughtful engineering education begins with the courage to ask what comes next.</p></div><div><h3>Explore</h3><div className="footer-links"><Link to="/about">About us</Link><Link to="/academics">Academics</Link><Link to="/placements">Placements</Link><Link to="/gallery">Gallery</Link></div></div><div><h3>Connect</h3><p>{site.location}</p><a href={`mailto:${site.email}`}>{site.email}</a></div></div><div className="footer-bottom"><span>© {new Date().getFullYear()} PK Technology of Engineering</span><span>Developed by {site.developer}</span></div></div></footer>
-  </div>;
+    </section>
+  );
 }
 
-export function PageIntro({ eyebrow, title, description }: { eyebrow: string; title: string; description: string }) {
-  return <section className="page-intro"><div className="site-container"><div className="eyebrow light-eyebrow"><span className="eyebrow-line" />{eyebrow}</div><h1>{title}</h1><p>{description}</p></div></section>;
+export function SectionHeader({
+  eyebrow,
+  title,
+  subtitle,
+  centered = true,
+  className = "",
+  dataReveal = "fade-up",
+}: {
+  eyebrow?: string;
+  title: string;
+  subtitle?: string;
+  centered?: boolean;
+  className?: string;
+  dataReveal?: string;
+}) {
+  return (
+    <div
+      className={`mb-8 sm:mb-10 ${centered ? "text-center max-w-3xl mx-auto" : ""} ${className}`}
+      {...(dataReveal ? { "data-reveal": dataReveal } : {})}
+    >
+      {eyebrow && (
+        <span className="text-[11px] sm:text-xs font-bold uppercase tracking-wider text-[#b45309] mb-1.5 block">
+          {eyebrow}
+        </span>
+      )}
+      <h2 className="text-xl sm:text-2xl md:text-3xl font-extrabold text-[#0b224d] tracking-tight">
+        {title}
+      </h2>
+      {subtitle && (
+        <p className="mt-1.5 text-xs sm:text-sm md:text-base text-slate-600 leading-relaxed">
+          {subtitle}
+        </p>
+      )}
+      <div className={`w-16 h-1 bg-[#d97706] mt-3.5 ${centered ? "mx-auto" : ""}`} />
+    </div>
+  );
 }
-
-export function SectionHeading({ eyebrow, title, description, action }: { eyebrow: string; title: string; description?: string; action?: ReactNode }) {
-  return <div className="section-heading"><div><div className="eyebrow"><span className="eyebrow-line" />{eyebrow}</div><h2>{title}</h2>{description && <p>{description}</p>}</div>{action}</div>;
-}
-
-export function EmptyContent({ title, description }: { title: string; description: string }) {
-  return <div className="empty-content"><span className="empty-symbol">✳</span><h2>{title}</h2><p>{description}</p><Button asChild variant="outline" size="lg"><Link to="/contact">Contact the college <ArrowUpRight /></Link></Button></div>;
-}
-
-export function ContactBand() { return <section className="contact-band"><div className="site-container contact-band-inner"><div><span className="eyebrow light-eyebrow">THE NEXT STEP</span><h2>Start a conversation<br />about your future.</h2></div><Button asChild variant="light" size="lg"><Link to="/contact">Get in touch <ArrowUpRight /></Link></Button></div></section>; }

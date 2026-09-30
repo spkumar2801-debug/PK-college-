@@ -4,14 +4,14 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useRouterState,
   HeadContent,
   Scripts,
 } from "@tanstack/react-router";
-import { useEffect, type ReactNode } from "react";
+import type { ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { SiteLayout } from "@/components/site/SiteLayout";
-import { reportLovableError } from "../lib/lovable-error-reporting";
 
 function NotFoundComponent() {
   return (
@@ -38,9 +38,6 @@ function NotFoundComponent() {
 function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
   console.error(error);
   const router = useRouter();
-  useEffect(() => {
-    reportLovableError(error, { boundary: "tanstack_root_error_component" });
-  }, [error]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background px-4">
@@ -78,11 +75,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "PK Technology of Engineering" },
-      { name: "description", content: "Engineering education in Vijayawada, Andhra Pradesh." },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "PK Technology of Engineering" },
-      { property: "og:description", content: "Engineering education in Vijayawada, Andhra Pradesh." },
+      { title: "PK College of Engineering & Technology" },
+      { name: "description", content: "Official portal of PK College of Engineering & Technology. Undergraduate engineering programs, campus facilities, admissions, and academic notifications." },
+      { name: "author", content: "PK College of Engineering & Technology" },
+      { property: "og:title", content: "PK College of Engineering & Technology" },
+      { property: "og:description", content: "Official website of PK College of Engineering & Technology — Engineering education, modern laboratories, and academic programs." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
       
@@ -92,6 +89,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         rel: "stylesheet",
         href: appCss,
       },
+      { rel: "icon", href: "/favicon.svg", type: "image/svg+xml" },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "preconnect", href: "https://fonts.googleapis.com" },
       { rel: "preconnect", href: "https://fonts.gstatic.com", crossOrigin: "anonymous" },
@@ -120,11 +118,19 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const pathname = useRouterState({ select: (s) => s.location.pathname });
+  const isAdmin = pathname.startsWith("/admin");
 
   return (
     <QueryClientProvider client={queryClient}>
-      {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <SiteLayout><Outlet /></SiteLayout>
+      {/* Admin routes use dedicated AdminLayout and AdminHeader. Public routes use SiteLayout (PublicLayout). */}
+      {isAdmin ? (
+        <Outlet />
+      ) : (
+        <SiteLayout>
+          <Outlet />
+        </SiteLayout>
+      )}
     </QueryClientProvider>
   );
 }

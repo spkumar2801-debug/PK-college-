@@ -1,24 +1,32 @@
-# Radiant UI Forge
+# PK College of Engineering & Technology
 
-buid the best ui website
+Official institutional web portal for **PK College of Engineering & Technology (PKCET)**, Vijayawada, Andhra Pradesh, India.
 
-This project was built with [Lovable](https://lovable.dev).
+## Academic Programs Offered
+- Computer Science & Engineering (CSE)
+- Artificial Intelligence & Data Science (AI & DS)
+- Electronics & Communication Engineering (ECE)
+- Electrical & Electronics Engineering (EEE)
+- Mechanical Engineering (ME)
+- Civil Engineering (CE)
 
-## Build with Lovable
-
-Continue developing this project in the [Lovable editor](https://lovable.dev/projects/958ece9c-b8c8-4ea4-ba55-78fcf62b1273).
-
-- **Ship faster**: describe what you want to build and Lovable handles the code.
-- **Stay in sync**: every change made in Lovable is committed straight to this repository.
-- **Full ownership**: this code is yours. Push to `main` on GitHub and your changes sync back into Lovable, ready for your next prompt.
+## Technology Stack
+- **Framework:** React 19, TanStack Start & TanStack Router
+- **Build Tool:** Vite 8 & Nitro
+- **Styling:** Tailwind CSS v4 & Institutional Component System
+- **State & Data Store:** Dynamic College Store with optional Firebase / Firestore integration
+- **Icons:** Lucide React
 
 ## Development
 
-Prefer working locally? You need Node.js and npm — [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating).
+```sh
+npm install --legacy-peer-deps
+npm run dev
+```
+
+## Production Build
 
 ```sh
-git clone <this-repository-url>
-cd <repository-name>
-npm i
-npm run dev
+npm run build
+npm run preview
 ```

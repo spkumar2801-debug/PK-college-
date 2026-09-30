@@ -1,0 +1,11 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100">
+  <!-- Outer shield container -->
+  <path d="M50 4 L88 17 V50 C88 74 50 95 50 95 C50 95 12 74 12 50 V17 L50 4 Z" fill="#0b224d" stroke="#d97706" stroke-width="3" stroke-linejoin="round"/>
+  <!-- Inner hairline outline -->
+  <path d="M50 10 L82 21.5 V49 C82 70 50 89 50 89 C50 89 18 70 18 49 V21.5 L50 10 Z" fill="none" stroke="#fde68a" stroke-width="1.2" stroke-opacity="0.6"/>
+  <!-- Bold serif PK Monogram -->
+  <text x="50" y="53" fill="#ffffff" text-anchor="middle" dominant-baseline="central" font-family="'Times New Roman', Georgia, serif" font-weight="800" font-size="34" letter-spacing="2.5">PK</text>
+  <!-- Institutional divider bar -->
+  <line x1="33" y1="67" x2="67" y2="67" stroke="#d97706" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="50" cy="67" r="2.2" fill="#fde68a"/>
+</svg>

@@ -14,11 +14,16 @@ import { Route as AboutRouteImport } from './routes/about'
 import { Route as AcademicsRouteImport } from './routes/academics'
 import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as AdminRouteImport } from './routes/admin'
+import { Route as AdmissionsRouteImport } from './routes/admissions'
 import { Route as AnnouncementsRouteImport } from './routes/announcements'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as DepartmentsRouteImport } from './routes/departments'
 import { Route as EventsRouteImport } from './routes/events'
+import { Route as FacilitiesRouteImport } from './routes/facilities'
 import { Route as GalleryRouteImport } from './routes/gallery'
 import { Route as PlacementsRouteImport } from './routes/placements'
+import { Route as PrincipalMessageRouteImport } from './routes/principal-message'
+import { Route as VisionMissionRouteImport } from './routes/vision-mission'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -45,6 +50,11 @@ const AdminRoute = AdminRouteImport.update({
   path: '/admin',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdmissionsRoute = AdmissionsRouteImport.update({
+  id: '/admissions',
+  path: '/admissions',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AnnouncementsRoute = AnnouncementsRouteImport.update({
   id: '/announcements',
   path: '/announcements',
@@ -55,9 +65,19 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const DepartmentsRoute = DepartmentsRouteImport.update({
+  id: '/departments',
+  path: '/departments',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const EventsRoute = EventsRouteImport.update({
   id: '/events',
   path: '/events',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FacilitiesRoute = FacilitiesRouteImport.update({
+  id: '/facilities',
+  path: '/facilities',
   getParentRoute: () => rootRouteImport,
 } as any)
 const GalleryRoute = GalleryRouteImport.update({
@@ -70,6 +90,16 @@ const PlacementsRoute = PlacementsRouteImport.update({
   path: '/placements',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PrincipalMessageRoute = PrincipalMessageRouteImport.update({
+  id: '/principal-message',
+  path: '/principal-message',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const VisionMissionRoute = VisionMissionRouteImport.update({
+  id: '/vision-mission',
+  path: '/vision-mission',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -77,11 +107,16 @@ export interface FileRoutesByFullPath {
   '/academics': typeof AcademicsRoute
   '/achievements': typeof AchievementsRoute
   '/admin': typeof AdminRoute
+  '/admissions': typeof AdmissionsRoute
   '/announcements': typeof AnnouncementsRoute
   '/contact': typeof ContactRoute
+  '/departments': typeof DepartmentsRoute
   '/events': typeof EventsRoute
+  '/facilities': typeof FacilitiesRoute
   '/gallery': typeof GalleryRoute
   '/placements': typeof PlacementsRoute
+  '/principal-message': typeof PrincipalMessageRoute
+  '/vision-mission': typeof VisionMissionRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -89,11 +124,16 @@ export interface FileRoutesByTo {
   '/academics': typeof AcademicsRoute
   '/achievements': typeof AchievementsRoute
   '/admin': typeof AdminRoute
+  '/admissions': typeof AdmissionsRoute
   '/announcements': typeof AnnouncementsRoute
   '/contact': typeof ContactRoute
+  '/departments': typeof DepartmentsRoute
   '/events': typeof EventsRoute
+  '/facilities': typeof FacilitiesRoute
   '/gallery': typeof GalleryRoute
   '/placements': typeof PlacementsRoute
+  '/principal-message': typeof PrincipalMessageRoute
+  '/vision-mission': typeof VisionMissionRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -102,11 +142,16 @@ export interface FileRoutesById {
   '/academics': typeof AcademicsRoute
   '/achievements': typeof AchievementsRoute
   '/admin': typeof AdminRoute
+  '/admissions': typeof AdmissionsRoute
   '/announcements': typeof AnnouncementsRoute
   '/contact': typeof ContactRoute
+  '/departments': typeof DepartmentsRoute
   '/events': typeof EventsRoute
+  '/facilities': typeof FacilitiesRoute
   '/gallery': typeof GalleryRoute
   '/placements': typeof PlacementsRoute
+  '/principal-message': typeof PrincipalMessageRoute
+  '/vision-mission': typeof VisionMissionRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -116,11 +161,16 @@ export interface FileRouteTypes {
     | '/academics'
     | '/achievements'
     | '/admin'
+    | '/admissions'
     | '/announcements'
     | '/contact'
+    | '/departments'
     | '/events'
+    | '/facilities'
     | '/gallery'
     | '/placements'
+    | '/principal-message'
+    | '/vision-mission'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -128,11 +178,16 @@ export interface FileRouteTypes {
     | '/academics'
     | '/achievements'
     | '/admin'
+    | '/admissions'
     | '/announcements'
     | '/contact'
+    | '/departments'
     | '/events'
+    | '/facilities'
     | '/gallery'
     | '/placements'
+    | '/principal-message'
+    | '/vision-mission'
   id:
     | '__root__'
     | '/'
@@ -140,11 +195,16 @@ export interface FileRouteTypes {
     | '/academics'
     | '/achievements'
     | '/admin'
+    | '/admissions'
     | '/announcements'
     | '/contact'
+    | '/departments'
     | '/events'
+    | '/facilities'
     | '/gallery'
     | '/placements'
+    | '/principal-message'
+    | '/vision-mission'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -153,11 +213,16 @@ export interface RootRouteChildren {
   AcademicsRoute: typeof AcademicsRoute
   AchievementsRoute: typeof AchievementsRoute
   AdminRoute: typeof AdminRoute
+  AdmissionsRoute: typeof AdmissionsRoute
   AnnouncementsRoute: typeof AnnouncementsRoute
   ContactRoute: typeof ContactRoute
+  DepartmentsRoute: typeof DepartmentsRoute
   EventsRoute: typeof EventsRoute
+  FacilitiesRoute: typeof FacilitiesRoute
   GalleryRoute: typeof GalleryRoute
   PlacementsRoute: typeof PlacementsRoute
+  PrincipalMessageRoute: typeof PrincipalMessageRoute
+  VisionMissionRoute: typeof VisionMissionRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -197,6 +262,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AdminRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admissions': {
+      id: '/admissions'
+      path: '/admissions'
+      fullPath: '/admissions'
+      preLoaderRoute: typeof AdmissionsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/announcements': {
       id: '/announcements'
       path: '/announcements'
@@ -211,11 +283,25 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ContactRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/departments': {
+      id: '/departments'
+      path: '/departments'
+      fullPath: '/departments'
+      preLoaderRoute: typeof DepartmentsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/events': {
       id: '/events'
       path: '/events'
       fullPath: '/events'
       preLoaderRoute: typeof EventsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/facilities': {
+      id: '/facilities'
+      path: '/facilities'
+      fullPath: '/facilities'
+      preLoaderRoute: typeof FacilitiesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/gallery': {
@@ -232,6 +318,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof PlacementsRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/principal-message': {
+      id: '/principal-message'
+      path: '/principal-message'
+      fullPath: '/principal-message'
+      preLoaderRoute: typeof PrincipalMessageRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/vision-mission': {
+      id: '/vision-mission'
+      path: '/vision-mission'
+      fullPath: '/vision-mission'
+      preLoaderRoute: typeof VisionMissionRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -241,11 +341,16 @@ const rootRouteChildren: RootRouteChildren = {
   AcademicsRoute: AcademicsRoute,
   AchievementsRoute: AchievementsRoute,
   AdminRoute: AdminRoute,
+  AdmissionsRoute: AdmissionsRoute,
   AnnouncementsRoute: AnnouncementsRoute,
   ContactRoute: ContactRoute,
+  DepartmentsRoute: DepartmentsRoute,
   EventsRoute: EventsRoute,
+  FacilitiesRoute: FacilitiesRoute,
   GalleryRoute: GalleryRoute,
   PlacementsRoute: PlacementsRoute,
+  PrincipalMessageRoute: PrincipalMessageRoute,
+  VisionMissionRoute: VisionMissionRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
