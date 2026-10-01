@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, type ReactNode } from "react";
 import { CollegeCrest } from "@/components/site/CollegeCrest";
-import { useCollegeStore } from "@/lib/college-store";
 
 interface RouteTransitionProps {
   children: ReactNode;
@@ -16,63 +15,53 @@ function preventScroll(e: Event) {
  * Premium Institutional Route Transition & Page Reveal
  * for PK College of Engineering & Technology.
  *
- * Core Guarantees:
- * 1. Absolute Failsafe: Overlay is unconditionally removed within 1400ms under any circumstance.
- * 2. Visual-Only: Never awaits Firestore, Cloudinary, images, videos, Auth, or CMS data.
- * 3. Robust Scroll Lock: Immediately locks body and html scrolling without layout jump.
- * 4. Automatic Cleanup: Cleans up all DOM styles, listeners, and timers on exit or unmount.
- * 5. Single Transition Instance: Prevents rapid-click stacking and timer conflicts.
+ * Guarantees:
+ * 1. Independent Client Timers: Normal dismissal at ~850ms.
+ * 2. Absolute Failsafe: Hard JS failsafes at 1400ms and 1500ms.
+ * 3. Immediate Scroll Lock: body and html overflow hidden + wheel/touch prevention while visible.
+ * 4. Zero Data Coupling: Completely decoupled from Firestore, Firebase Auth, Cloudinary, CMS, or media.
  */
 export function RouteTransition({ children, pathname }: RouteTransitionProps) {
-  const store = useCollegeStore();
-  const site = store?.siteSettings;
-
-  // Visibility and progress state
   const [isVisible, setIsVisible] = useState(true);
-  const [progress, setProgress] = useState(25);
+  const [progress, setProgress] = useState(30);
 
-  // References to guarantee independent cleanup and failsafe
-  const isTransitioningRef = useRef(true);
-  const finishTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const failsafeTimeoutRef = useRef<NodeJS.Timeout | null>(null);
-  const progressIntervalRef = useRef<NodeJS.Timeout | null>(null);
-  const isFirstMountRef = useRef(true);
-  const lastPathnameRef = useRef<string>(pathname);
+  const timerRef = useRef<NodeJS.Timeout | null>(null);
+  const failsafeRef = useRef<NodeJS.Timeout | null>(null);
+  const isInitialMount = useRef(true);
 
-  // Unconditional force-hide and cleanup function
+  // Restores all scroll, pointer-events, and hides the overlay completely
   const forceHideTransition = () => {
-    isTransitioningRef.current = false;
     setIsVisible(false);
     setProgress(100);
 
-    // Clear all timers
-    if (finishTimeoutRef.current) {
-      clearTimeout(finishTimeoutRef.current);
-      finishTimeoutRef.current = null;
+    if (timerRef.current) {
+      clearTimeout(timerRef.current);
+      timerRef.current = null;
     }
-    if (failsafeTimeoutRef.current) {
-      clearTimeout(failsafeTimeoutRef.current);
-      failsafeTimeoutRef.current = null;
-    }
-    if (progressIntervalRef.current) {
-      clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = null;
+    if (failsafeRef.current) {
+      clearTimeout(failsafeRef.current);
+      failsafeRef.current = null;
     }
 
-    // Restore html & body scroll styles
     if (typeof document !== "undefined") {
       try {
+        // Direct DOM failsafe: guarantees immediate dismissal regardless of React queue
+        const overlay = document.getElementById("pk-page-transition-overlay");
+        if (overlay) {
+          overlay.style.display = "none";
+          overlay.style.pointerEvents = "none";
+          overlay.style.opacity = "0";
+        }
         document.documentElement.style.overflow = "";
         document.body.style.overflow = "";
-        document.body.style.position = "";
-        document.body.style.top = "";
-        document.body.style.width = "";
+        document.body.style.removeProperty("overflow");
+        document.documentElement.style.removeProperty("overflow");
+        document.body.style.removeProperty("pointer-events");
       } catch {
         // Safe fallback
       }
     }
 
-    // Remove wheel and touch scroll blockers
     if (typeof window !== "undefined") {
       try {
         window.removeEventListener("wheel", preventScroll, { capture: true });
@@ -83,72 +72,107 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
     }
   };
 
-  // Start the visual transition
-  const startTransition = (durationMs = 850) => {
-    // If already transitioning, don't interrupt the active exit timer
-    if (isTransitioningRef.current && !isFirstMountRef.current) return;
-    isTransitioningRef.current = true;
-
-    if (typeof window === "undefined") return;
-
-    // Check reduced motion preference
-    const prefersReducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
-    const duration = prefersReducedMotion ? 200 : durationMs;
-
-    // 1. Lock body & html scrolling immediately
-    try {
-      document.documentElement.style.overflow = "hidden";
-      document.body.style.overflow = "hidden";
-      window.addEventListener("wheel", preventScroll, { passive: false, capture: true });
-      window.addEventListener("touchmove", preventScroll, { passive: false, capture: true });
-    } catch {
-      // Safe fallback
-    }
-
-    // 2. Show overlay
-    setIsVisible(true);
-    setProgress(prefersReducedMotion ? 100 : 25);
-
-    // 3. Decorative progress animation
-    if (!prefersReducedMotion) {
-      let currentProgress = 25;
-      if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-      progressIntervalRef.current = setInterval(() => {
-        currentProgress += 18;
-        if (currentProgress >= 95) {
-          if (progressIntervalRef.current) clearInterval(progressIntervalRef.current);
-          currentProgress = 95;
+  // Locks scrolling and prepares overlay
+  const lockScroll = () => {
+    if (typeof document !== "undefined") {
+      try {
+        const overlay = document.getElementById("pk-page-transition-overlay");
+        if (overlay) {
+          overlay.style.display = "";
+          overlay.style.pointerEvents = "";
+          overlay.style.opacity = "";
         }
-        setProgress(currentProgress);
-      }, duration / 5);
+        document.documentElement.style.overflow = "hidden";
+        document.body.style.overflow = "hidden";
+      } catch {
+        // Safe fallback
+      }
     }
-
-    // 4. Normal exit timer (700-1000ms)
-    if (finishTimeoutRef.current) clearTimeout(finishTimeoutRef.current);
-    finishTimeoutRef.current = setTimeout(() => {
-      forceHideTransition();
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-    }, duration);
-
-    // 5. ABSOLUTE HARD FAILSAFE: Unconditionally force-hide at 1400ms max (less than 1.5s)
-    if (failsafeTimeoutRef.current) clearTimeout(failsafeTimeoutRef.current);
-    failsafeTimeoutRef.current = setTimeout(() => {
-      forceHideTransition();
-      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
-    }, 1400);
+    if (typeof window !== "undefined") {
+      try {
+        window.addEventListener("wheel", preventScroll, { passive: false, capture: true });
+        window.addEventListener("touchmove", preventScroll, { passive: false, capture: true });
+      } catch {
+        // Safe fallback
+      }
+    }
   };
 
-  // INITIAL MOUNT / PAGE LOAD / REFRESH
+  // 1. INITIAL MOUNT / FIRST PAGE LOAD / REFRESH
   useEffect(() => {
-    // Trigger the initial load transition for ~850ms on first mount
-    startTransition(850);
+    lockScroll();
+    setIsVisible(true);
+    setProgress(35);
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    const duration = prefersReducedMotion ? 200 : 850;
+
+    const p1 = setTimeout(() => setProgress(75), duration * 0.35);
+    const p2 = setTimeout(() => setProgress(95), duration * 0.7);
+
+    // Normal hide timer (~850ms)
+    timerRef.current = setTimeout(() => {
+      forceHideTransition();
+    }, duration);
+
+    // Hard failsafe at 1400ms max (less than 1.5s)
+    failsafeRef.current = setTimeout(() => {
+      forceHideTransition();
+    }, 1400);
+
+    // Absolute fallback failsafe at 1500ms
+    const absoluteFailsafe = setTimeout(() => {
+      forceHideTransition();
+    }, 1500);
 
     return () => {
+      clearTimeout(p1);
+      clearTimeout(p2);
+      clearTimeout(absoluteFailsafe);
       forceHideTransition();
     };
   }, []);
 
-  // Global click interceptor for internal navigation links
+  // 2. INTERNAL ROUTE CHANGE (handles router navigation & Back/Forward)
+  useEffect(() => {
+    if (isInitialMount.current) {
+      isInitialMount.current = false;
+      return;
+    }
+
+    lockScroll();
+    setIsVisible(true);
+    setProgress(35);
+
+    const prefersReducedMotion =
+      typeof window !== "undefined" &&
+      window.matchMedia?.("(prefers-reduced-motion: reduce)")?.matches;
+    const duration = prefersReducedMotion ? 200 : 750;
+
+    const p = setTimeout(() => setProgress(90), duration * 0.5);
+
+    if (timerRef.current) clearTimeout(timerRef.current);
+    timerRef.current = setTimeout(() => {
+      forceHideTransition();
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }, duration);
+
+    if (failsafeRef.current) clearTimeout(failsafeRef.current);
+    failsafeRef.current = setTimeout(() => {
+      forceHideTransition();
+      window.scrollTo({ top: 0, left: 0, behavior: "instant" });
+    }, 1400);
+
+    return () => {
+      clearTimeout(p);
+      if (timerRef.current) clearTimeout(timerRef.current);
+      if (failsafeRef.current) clearTimeout(failsafeRef.current);
+    };
+  }, [pathname]);
+
+  // 3. GLOBAL LINK CLICK INTERCEPTOR
   useEffect(() => {
     if (typeof window === "undefined") return;
 
@@ -159,7 +183,6 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
       const href = anchor.getAttribute("href");
       if (!href) return;
 
-      // Ignore external, mailto, tel, downloads, target="_blank", anchors, or admin
       if (
         anchor.target === "_blank" ||
         href.startsWith("http://") ||
@@ -173,13 +196,12 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
         return;
       }
 
-      // If clicking the current path, ignore
       const currentPath = window.location.pathname;
       if (href === currentPath || href === `${currentPath}/`) return;
 
-      // Trigger transition immediately on click
-      const isMobile = window.innerWidth < 640;
-      startTransition(isMobile ? 950 : 800);
+      lockScroll();
+      setIsVisible(true);
+      setProgress(40);
     };
 
     document.addEventListener("click", handleLinkClick, { capture: true });
@@ -187,25 +209,6 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
       document.removeEventListener("click", handleLinkClick, { capture: true });
     };
   }, []);
-
-  // Route change listener (handles browser Back/Forward and router navigation)
-  useEffect(() => {
-    if (isFirstMountRef.current) {
-      // Handled by initial mount effect
-      isFirstMountRef.current = false;
-      lastPathnameRef.current = pathname;
-      return;
-    }
-
-    if (lastPathnameRef.current !== pathname) {
-      lastPathnameRef.current = pathname;
-      // If not already active from click, start transition (e.g. Back/Forward)
-      if (!isTransitioningRef.current) {
-        const isMobile = typeof window !== "undefined" && window.innerWidth < 640;
-        startTransition(isMobile ? 950 : 800);
-      }
-    }
-  }, [pathname]);
 
   return (
     <>
@@ -220,18 +223,19 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
           className="h-full bg-gradient-to-r from-[#0b224d] via-[#d97706] to-[#f59e0b] shadow-[0_0_8px_rgba(217,119,6,0.6)] transition-all ease-out"
           style={{
             width: `${progress}%`,
-            transitionDuration: progress >= 95 ? "120ms" : "200ms",
+            transitionDuration: progress >= 90 ? "120ms" : "200ms",
           }}
         />
       </div>
 
       {/* 2. Premium PK College Overlay with Backdrop Blur & Dim */}
       <div
+        id="pk-page-transition-overlay"
         aria-hidden="true"
-        className={`fixed inset-0 z-[999998] flex items-center justify-center bg-[#07172f]/45 backdrop-blur-sm select-none transition-all ease-out ${
+        className={`fixed inset-0 z-[999998] flex items-center justify-center bg-[#07172f]/45 backdrop-blur-sm select-none transition-all ease-out duration-200 ${
           isVisible
-            ? "opacity-100 pointer-events-auto duration-150"
-            : "opacity-0 pointer-events-none duration-250"
+            ? "opacity-100 pointer-events-auto"
+            : "opacity-0 pointer-events-none invisible"
         }`}
       >
         <div
@@ -247,7 +251,7 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
 
           {/* College Identity */}
           <h2 className="text-xs font-black uppercase tracking-wider text-[#0b224d] text-center leading-tight">
-            {site?.name || "PK College of Engineering & Technology"}
+            PK College of Engineering & Technology
           </h2>
           <span className="text-[10px] font-bold text-amber-700 uppercase tracking-widest mt-1">
             Academic Portal
@@ -259,7 +263,7 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
               className="h-full bg-gradient-to-r from-[#0b224d] via-[#d97706] to-[#f59e0b] rounded-full transition-all ease-out"
               style={{
                 width: `${progress}%`,
-                transitionDuration: progress >= 95 ? "120ms" : "180ms",
+                transitionDuration: progress >= 90 ? "120ms" : "180ms",
               }}
             />
           </div>
@@ -273,4 +277,3 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
     </>
   );
 }
-

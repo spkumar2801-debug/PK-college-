@@ -111,6 +111,11 @@ function RootShell({ children }: { children: ReactNode }) {
       <body>
         {children}
         <Scripts />
+        <script
+          dangerouslySetInnerHTML={{
+            __html: `setTimeout(function(){try{var el=document.getElementById("pk-page-transition-overlay");if(el){el.style.display="none";el.style.pointerEvents="none";el.style.opacity="0";}document.documentElement.style.overflow="";document.body.style.overflow="";}catch(e){}},1500);`,
+          }}
+        />
       </body>
     </html>
   );
