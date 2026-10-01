@@ -82,41 +82,24 @@ function VisionMissionPage() {
             </div>
 
             <div className="space-y-4 text-sm md:text-base text-slate-700 leading-relaxed">
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#b45309] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                  1
-                </span>
-                <p>
-                  <strong>Academic Rigor:</strong> Deliver rigorous, outcome-based engineering education integrated with intensive hands-on laboratory experiences and continuous internal assessment.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#b45309] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                  2
-                </span>
-                <p>
-                  <strong>Industry Integration:</strong> Cultivate proactive industrial partnerships, corporate guest lectures, internships, and skill development bootcamps to ensure career readiness.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#b45309] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                  3
-                </span>
-                <p>
-                  <strong>Research & Innovation:</strong> Encourage faculty and student innovation through multidisciplinary project laboratories, patent filing, technical symposiums, and entrepreneurship incubation.
-                </p>
-              </div>
-
-              <div className="flex items-start gap-3">
-                <span className="w-6 h-6 rounded-full bg-[#b45309] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
-                  4
-                </span>
-                <p>
-                  <strong>Human Values & Ethics:</strong> Instill professional ethics, leadership qualities, environmental sustainability, and a commitment to nation-building.
-                </p>
-              </div>
+              {(site.missions && site.missions.length > 0
+                ? site.missions
+                : site.mission
+                ? site.mission.split("\n").map((m) => m.trim()).filter(Boolean)
+                : [
+                    "Academic Rigor: Deliver rigorous, outcome-based engineering education integrated with intensive hands-on laboratory experiences and continuous internal assessment.",
+                    "Industry Integration: Cultivate proactive industrial partnerships, corporate guest lectures, internships, and skill development bootcamps to ensure career readiness.",
+                    "Research & Innovation: Encourage faculty and student innovation through multidisciplinary project laboratories, patent filing, technical symposiums, and entrepreneurship incubation.",
+                    "Human Values & Ethics: Instill professional ethics, leadership qualities, environmental sustainability, and a commitment to nation-building."
+                  ]
+              ).map((mText, idx) => (
+                <div key={idx} className="flex items-start gap-3">
+                  <span className="w-6 h-6 rounded-full bg-[#b45309] text-white flex items-center justify-center text-xs font-bold flex-shrink-0 mt-0.5">
+                    {idx + 1}
+                  </span>
+                  <p className="leading-relaxed">{mText}</p>
+                </div>
+              ))}
             </div>
           </div>
 

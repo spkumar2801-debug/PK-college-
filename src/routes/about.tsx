@@ -112,7 +112,7 @@ function AboutPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0b224d] mb-3">Our Vision</h3>
               <p className="text-sm text-slate-700 leading-relaxed mb-4">
-                To emerge as a premier center of technical education and research in Andhra Pradesh, producing socially conscious, globally competent, and ethically grounded engineers capable of pioneering innovative technological solutions for societal advancement.
+                {site.vision || "To emerge as a premier center of technical education and research in Andhra Pradesh, producing socially conscious, globally competent, and ethically grounded engineers capable of pioneering innovative technological solutions for societal advancement."}
               </p>
               <Link
                 to="/vision-mission"
@@ -129,18 +129,21 @@ function AboutPage() {
               </div>
               <h3 className="text-xl font-bold text-[#0b224d] mb-3">Our Mission</h3>
               <ul className="text-xs text-slate-700 space-y-2.5 leading-relaxed">
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mt-1.5 flex-shrink-0" />
-                  <span>Deliver rigorous, outcome-based engineering education integrated with intensive hands-on laboratory experiences.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mt-1.5 flex-shrink-0" />
-                  <span>Cultivate strong industrial partnerships to facilitate internships, corporate mentorship, and campus recruitments.</span>
-                </li>
-                <li className="flex items-start gap-2">
-                  <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mt-1.5 flex-shrink-0" />
-                  <span>Instill professional ethics, leadership qualities, environmental consciousness, and life-long learning values in every student.</span>
-                </li>
+                {(site.missions && site.missions.length > 0
+                  ? site.missions
+                  : site.mission
+                  ? site.mission.split("\n").map((m) => m.trim()).filter(Boolean)
+                  : [
+                      "Deliver rigorous, outcome-based engineering education integrated with intensive hands-on laboratory experiences.",
+                      "Cultivate strong industrial partnerships to facilitate internships, corporate mentorship, and campus recruitments.",
+                      "Instill professional ethics, leadership qualities, environmental consciousness, and life-long learning values in every student.",
+                    ]
+                ).map((mText, idx) => (
+                  <li key={idx} className="flex items-start gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-600 mt-1.5 flex-shrink-0" />
+                    <span>{mText}</span>
+                  </li>
+                ))}
               </ul>
             </div>
           </div>

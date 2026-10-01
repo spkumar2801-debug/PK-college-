@@ -1977,13 +1977,16 @@ function AdminPage() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
+                  const missionStr = String(fd.get("mission") || "");
+                  const missionsList = missionStr.split("\n").map((m) => m.trim()).filter(Boolean);
                   await store.updateSiteSettings({
                     foundedYear: String(fd.get("foundedYear") || ""),
                     established: `Founded in ${fd.get("foundedYear") || "2021"}`,
                     tagline: String(fd.get("tagline") || ""),
                     aboutText: String(fd.get("aboutText") || ""),
                     vision: String(fd.get("vision") || ""),
-                    mission: String(fd.get("mission") || ""),
+                    mission: missionStr,
+                    missions: missionsList,
                     affiliations: String(fd.get("affiliations") || ""),
                   });
                   triggerToast("General College Information updated successfully.");

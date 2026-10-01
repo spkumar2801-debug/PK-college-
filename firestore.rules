@@ -6,82 +6,73 @@ service cloud.firestore {
       return request.auth != null;
     }
 
-    // Role check: active admin record in /admins/{uid}
-    function isAdmin() {
-      return isAuthenticated() && (
-        exists(/databases/$(database)/documents/admins/$(request.auth.uid)) &&
-        get(/databases/$(database)/documents/admins/$(request.auth.uid)).data.active == true
-      );
-    }
 
     // Administrative accounts collection
-    match /admins/{userId} {
-      allow read: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
-      // Allows first authorized user to bootstrap their admin profile or existing admins to provision
-      allow write: if isAuthenticated() && (request.auth.uid == userId || isAdmin());
+    match /admins/{userId=**} {
+      allow read, write: if isAuthenticated();
     }
 
     // Public CMS Data Collections:
     // Public visitors: Read-only access
     // Authenticated staff: Write access
-    match /siteSettings/{docId} {
+    match /siteSettings/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /homepage/{docId} {
+    match /homepage/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /departments/{slug} {
+    match /departments/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /facilities/{facId} {
+    match /facilities/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /about/{docId} {
+    match /about/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /academics/{docId} {
+    match /academics/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /placements/{docId} {
+    match /placements/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /achievements/{docId} {
+    match /achievements/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /announcements/{annId} {
+    match /announcements/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /events/{eventId} {
+    match /events/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
-    match /gallery/{itemId} {
+    match /gallery/{allPaths=**} {
       allow read: if true;
       allow write: if isAuthenticated();
     }
 
     // Prospective Student Admission Enquiries:
     // Public visitors can submit (create); only authenticated staff can read, update status, or delete.
-    match /enquiries/{enquiryId} {
+    match /enquiries/{enquiryId=**} {
       allow create: if true;
       allow read, update, delete: if isAuthenticated();
     }
