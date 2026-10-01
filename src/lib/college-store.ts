@@ -86,10 +86,275 @@ function notifyAll() {
   listeners.forEach((l) => l());
 }
 
+const loadInitialDepartments = (): Department[] => {
+  const stored = getStored(STORAGE_KEYS.departments, initialDepartments);
+  if (!Array.isArray(stored) || stored.length === 0) return initialDepartments;
+  const merged = initialDepartments.map((initD) => {
+    const existing = stored.find((s: Department) => s.slug === initD.slug || s.code === initD.code);
+    return existing ? { ...initD, ...existing } : initD;
+  });
+  stored.forEach((s: Department) => {
+    if (!merged.some((m) => m.slug === s.slug || m.code === s.code)) {
+      merged.push(s);
+    }
+  });
+  return merged;
+};
+
+const loadInitialFacilities = (): CollegeFacility[] => {
+  const stored = getStored(STORAGE_KEYS.facilities, initialFacilities);
+  if (!Array.isArray(stored) || stored.length === 0) return initialFacilities;
+  const merged = initialFacilities.map((initF) => {
+    const existing = stored.find((s: CollegeFacility) => s.id === initF.id);
+    return existing
+      ? {
+          ...initF,
+          ...existing,
+          image: existing.image || initF.image,
+          keyFeatures: Array.isArray(existing.keyFeatures) ? existing.keyFeatures : initF.keyFeatures || [],
+        }
+      : initF;
+  });
+  stored.forEach((s: CollegeFacility) => {
+    if (!merged.some((m) => m.id === s.id)) {
+      merged.push({ ...s, keyFeatures: Array.isArray(s.keyFeatures) ? s.keyFeatures : [] });
+    }
+  });
+  return merged;
+};
+
+// Module-level Singleton State: Deterministic on SSR, non-blocking on client
+let globalSiteSettings: SiteSettings = defaultSite;
+let globalDepartments: Department[] = initialDepartments;
+let globalFacilities: CollegeFacility[] = initialFacilities;
+let globalHomepage: HomepageSettings = defaultHomepage;
+let globalPlacements: PlacementData = initialPlacements;
+let globalLeadership: Leadership = initialLeadership;
+let globalAnnouncements: Announcement[] = initialAnnouncements;
+let globalEvents: CollegeEvent[] = initialEvents;
+let globalGallery: GalleryItem[] = initialGallery;
+let globalEnquiries: AdmissionEnquiry[] = [];
+
+let isGlobalStorageLoaded = false;
+let isFirestoreListenerActive = false;
+
+function syncFromLocalStorage() {
+  if (isGlobalStorageLoaded || typeof window === "undefined") return;
+  isGlobalStorageLoaded = true;
+  globalSiteSettings = getStored(STORAGE_KEYS.siteSettings, defaultSite);
+  globalDepartments = loadInitialDepartments();
+  globalFacilities = loadInitialFacilities();
+  globalHomepage = getStored(STORAGE_KEYS.homepage, defaultHomepage);
+  globalPlacements = getStored(STORAGE_KEYS.placements, initialPlacements);
+  globalLeadership = getStored(STORAGE_KEYS.leadership, initialLeadership);
+  globalAnnouncements = getStored(STORAGE_KEYS.announcements, initialAnnouncements);
+  globalEvents = getStored(STORAGE_KEYS.events, initialEvents);
+  globalGallery = getStored(STORAGE_KEYS.gallery, initialGallery);
+  globalEnquiries = getStored(STORAGE_KEYS.enquiries, []);
+}
+
+function initGlobalFirestoreListeners() {
+  if (isFirestoreListenerActive || !isFirebaseConfigured || typeof window === "undefined") return;
+  isFirestoreListenerActive = true;
+
+  const handleListenerError = (collName: string, err: any) => {
+    console.warn(`[CollegeStore] Firestore ${collName} listener notice:`, err?.code || err?.message);
+  };
+
+  try {
+    // 1. Site Settings listener
+    onSnapshot(doc(db, collectionNames.siteSettings, "general"), (snap) => {
+      try {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<SiteSettings>;
+          globalSiteSettings = { ...defaultSite, ...data };
+          setStored(STORAGE_KEYS.siteSettings, globalSiteSettings);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("siteSettings", err);
+      }
+    }, (err) => handleListenerError("siteSettings", err));
+
+    // 2. Departments listener
+    onSnapshot(collection(db, "departments"), (snap) => {
+      try {
+        if (!snap.empty) {
+          const remoteDepts = snap.docs.map((d) => d.data() as Department);
+          const merged = initialDepartments.map((initD) => {
+            const remote = remoteDepts.find((r) => r.slug === initD.slug);
+            if (!remote) return initD;
+            return {
+              ...initD,
+              ...remote,
+              image: remote.image || initD.image,
+              laboratories: Array.isArray(remote.laboratories) && remote.laboratories.length > 0 ? remote.laboratories : initD.laboratories,
+              keyDomains: Array.isArray(remote.keyDomains) && remote.keyDomains.length > 0 ? remote.keyDomains : initD.keyDomains,
+              careerProspects: Array.isArray(remote.careerProspects) && remote.careerProspects.length > 0 ? remote.careerProspects : initD.careerProspects,
+              mission: Array.isArray(remote.mission) && remote.mission.length > 0 ? remote.mission : initD.mission,
+            };
+          });
+          remoteDepts.forEach((r) => {
+            if (!merged.some((m) => m.slug === r.slug)) {
+              merged.push(r);
+            }
+          });
+          globalDepartments = merged;
+          setStored(STORAGE_KEYS.departments, merged);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("departments", err);
+      }
+    }, (err) => handleListenerError("departments", err));
+
+    // 3. Homepage listener
+    onSnapshot(doc(db, "homepage", "content"), (snap) => {
+      try {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<HomepageSettings>;
+          globalHomepage = { ...defaultHomepage, ...data };
+          setStored(STORAGE_KEYS.homepage, globalHomepage);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("homepage", err);
+      }
+    }, (err) => handleListenerError("homepage", err));
+
+    // 4. Facilities listener
+    onSnapshot(collection(db, "facilities"), (snap) => {
+      try {
+        if (!snap.empty) {
+          const remoteFacs = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeFacility[];
+          const merged = initialFacilities.map((initF) => {
+            const remote = remoteFacs.find((r) => r.id === initF.id);
+            if (!remote) return initF;
+            return {
+              ...initF,
+              ...remote,
+              image: remote.image || initF.image,
+              keyFeatures: Array.isArray(remote.keyFeatures) && remote.keyFeatures.length > 0 ? remote.keyFeatures : initF.keyFeatures,
+            };
+          });
+          remoteFacs.forEach((r) => {
+            if (!merged.some((m) => m.id === r.id)) {
+              merged.push(r);
+            }
+          });
+          globalFacilities = merged;
+          setStored(STORAGE_KEYS.facilities, merged);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("facilities", err);
+      }
+    }, (err) => handleListenerError("facilities", err));
+
+    // 5. Announcements listener
+    onSnapshot(collection(db, collectionNames.announcements), (snap) => {
+      try {
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as Announcement[];
+          globalAnnouncements = list;
+          setStored(STORAGE_KEYS.announcements, list);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("announcements", err);
+      }
+    }, (err) => handleListenerError("announcements", err));
+
+    // 6. Events listener
+    onSnapshot(collection(db, collectionNames.events), (snap) => {
+      try {
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeEvent[];
+          globalEvents = list;
+          setStored(STORAGE_KEYS.events, list);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("events", err);
+      }
+    }, (err) => handleListenerError("events", err));
+
+    // 7. Gallery listener
+    onSnapshot(collection(db, collectionNames.gallery), (snap) => {
+      try {
+        if (!snap.empty) {
+          const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as GalleryItem[];
+          globalGallery = list;
+          setStored(STORAGE_KEYS.gallery, list);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("gallery", err);
+      }
+    }, (err) => handleListenerError("gallery", err));
+
+    // 8. Leadership listener
+    onSnapshot(doc(db, collectionNames.about, "leadership"), (snap) => {
+      try {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<Leadership>;
+          globalLeadership = { ...initialLeadership, ...data };
+          setStored(STORAGE_KEYS.leadership, globalLeadership);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("about/leadership", err);
+      }
+    }, (err) => handleListenerError("about/leadership", err));
+
+    // 9. Placements listener
+    onSnapshot(doc(db, collectionNames.placements, "overview"), (snap) => {
+      try {
+        if (snap.exists()) {
+          const data = snap.data() as Partial<PlacementData>;
+          globalPlacements = { ...initialPlacements, ...data };
+          setStored(STORAGE_KEYS.placements, globalPlacements);
+          notifyAll();
+        }
+      } catch (err) {
+        handleListenerError("placements/overview", err);
+      }
+    }, (err) => handleListenerError("placements/overview", err));
+
+    // 10. Enquiries listener (Admin only)
+    let unsubEnq: (() => void) | null = null;
+    onAuthStateChanged(auth, (user) => {
+      try {
+        if (user && !unsubEnq) {
+          unsubEnq = onSnapshot(collection(db, "enquiries"), (snap) => {
+            try {
+              const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as AdmissionEnquiry[];
+              globalEnquiries = list;
+              setStored(STORAGE_KEYS.enquiries, list);
+              notifyAll();
+            } catch (err) {
+              handleListenerError("enquiries", err);
+            }
+          }, (err) => handleListenerError("enquiries", err));
+        } else if (!user && unsubEnq) {
+          unsubEnq();
+          unsubEnq = null;
+        }
+      } catch (err) {
+        handleListenerError("auth-enquiries", err);
+      }
+    });
+  } catch (err) {
+    console.warn("[CollegeStore] Firestore listeners init error:", err);
+  }
+}
+
 export function useCollegeStore() {
   const [, setVersion] = useState(0);
 
   useEffect(() => {
+    syncFromLocalStorage();
+    initGlobalFirestoreListeners();
     const listener = () => setVersion((v) => v + 1);
     listeners.add(listener);
     return () => {
@@ -97,300 +362,67 @@ export function useCollegeStore() {
     };
   }, []);
 
-  const loadInitialDepartments = (): Department[] => {
-    const stored = getStored(STORAGE_KEYS.departments, initialDepartments);
-    if (!Array.isArray(stored) || stored.length === 0) return initialDepartments;
-    const merged = initialDepartments.map((initD) => {
-      const existing = stored.find((s: Department) => s.slug === initD.slug || s.code === initD.code);
-      return existing ? { ...initD, ...existing } : initD;
-    });
-    stored.forEach((s: Department) => {
-      if (!merged.some((m) => m.slug === s.slug || m.code === s.code)) {
-        merged.push(s);
-      }
-    });
-    return merged;
+  const siteSettings = globalSiteSettings;
+  const departments = globalDepartments;
+  const facilities = globalFacilities;
+  const homepage = globalHomepage;
+  const placements = globalPlacements;
+  const leadership = globalLeadership;
+  const announcements = globalAnnouncements;
+  const events = globalEvents;
+  const galleryItems = globalGallery;
+  const enquiries = globalEnquiries;
+
+  const setSiteSettingsState = (val: SiteSettings) => {
+    globalSiteSettings = val;
+    setStored(STORAGE_KEYS.siteSettings, val);
+    notifyAll();
   };
-
-  const loadInitialFacilities = (): CollegeFacility[] => {
-    const stored = getStored(STORAGE_KEYS.facilities, initialFacilities);
-    if (!Array.isArray(stored) || stored.length === 0) return initialFacilities;
-    const merged = initialFacilities.map((initF) => {
-      const existing = stored.find((s: CollegeFacility) => s.id === initF.id);
-      return existing
-        ? {
-            ...initF,
-            ...existing,
-            image: existing.image || initF.image,
-            keyFeatures: Array.isArray(existing.keyFeatures) ? existing.keyFeatures : initF.keyFeatures || [],
-          }
-        : initF;
-    });
-    stored.forEach((s: CollegeFacility) => {
-      if (!merged.some((m) => m.id === s.id)) {
-        merged.push({ ...s, keyFeatures: Array.isArray(s.keyFeatures) ? s.keyFeatures : [] });
-      }
-    });
-    return merged;
+  const setDepartmentsState = (val: Department[]) => {
+    globalDepartments = val;
+    setStored(STORAGE_KEYS.departments, val);
+    notifyAll();
   };
-
-  const [siteSettings, setSiteSettingsState] = useState<SiteSettings>(() =>
-    getStored(STORAGE_KEYS.siteSettings, defaultSite),
-  );
-  const [departments, setDepartmentsState] = useState<Department[]>(loadInitialDepartments);
-  const [facilities, setFacilitiesState] = useState<CollegeFacility[]>(loadInitialFacilities);
-  const [homepage, setHomepageState] = useState<HomepageSettings>(() =>
-    getStored(STORAGE_KEYS.homepage, defaultHomepage),
-  );
-  const [placements, setPlacementsState] = useState<PlacementData>(() =>
-    getStored(STORAGE_KEYS.placements, initialPlacements),
-  );
-  const [leadership, setLeadershipState] = useState<Leadership>(() =>
-    getStored(STORAGE_KEYS.leadership, initialLeadership),
-  );
-  const [announcements, setAnnouncementsState] = useState<Announcement[]>(() =>
-    getStored(STORAGE_KEYS.announcements, initialAnnouncements),
-  );
-  const [events, setEventsState] = useState<CollegeEvent[]>(() =>
-    getStored(STORAGE_KEYS.events, initialEvents),
-  );
-  const [galleryItems, setGalleryState] = useState<GalleryItem[]>(() =>
-    getStored(STORAGE_KEYS.gallery, initialGallery),
-  );
-  const [enquiries, setEnquiriesState] = useState<AdmissionEnquiry[]>(() =>
-    getStored(STORAGE_KEYS.enquiries, []),
-  );
-
-  // Sync state on mount
-  useEffect(() => {
-    setSiteSettingsState(getStored(STORAGE_KEYS.siteSettings, defaultSite));
-    setDepartmentsState(loadInitialDepartments());
-    setFacilitiesState(loadInitialFacilities());
-    setHomepageState(getStored(STORAGE_KEYS.homepage, defaultHomepage));
-    setPlacementsState(getStored(STORAGE_KEYS.placements, initialPlacements));
-    setLeadershipState(getStored(STORAGE_KEYS.leadership, initialLeadership));
-    setAnnouncementsState(getStored(STORAGE_KEYS.announcements, initialAnnouncements));
-    setEventsState(getStored(STORAGE_KEYS.events, initialEvents));
-    setGalleryState(getStored(STORAGE_KEYS.gallery, initialGallery));
-    setEnquiriesState(getStored(STORAGE_KEYS.enquiries, []));
-  }, []);
-
-  // Background fetch & Real-time listeners from Firestore
-  useEffect(() => {
-    if (!isFirebaseConfigured || typeof window === "undefined") return;
-    let isMounted = true;
-    const unsubs: Array<() => void> = [];
-
-    const handleListenerError = (collName: string, err: any) => {
-      console.warn(`[CollegeStore] Firestore ${collName} listener notice:`, err.code || err.message);
-      if (err.code === "permission-denied") {
-        console.error(
-          `[CollegeStore] Public read access to '${collName}' is blocked by Cloud Firestore rules on project pk-college-74f41. ` +
-          `Publish firestore.rules in Firebase Console to allow public visitors on production to view live CMS updates.`
-        );
-      }
-    };
-
-    async function initFirestoreListeners() {
-      try {
-        // 1. Site Settings listener
-        const unsubSite = onSnapshot(doc(db, collectionNames.siteSettings, "general"), (snap) => {
-          if (snap.exists() && isMounted) {
-            const data = snap.data() as Partial<SiteSettings>;
-            const merged = { ...defaultSite, ...data };
-            setSiteSettingsState(merged);
-            setStored(STORAGE_KEYS.siteSettings, merged);
-            notifyAll();
-          }
-        }, (err) => handleListenerError("siteSettings", err));
-        unsubs.push(unsubSite);
-
-        // 2. Departments listener - Cloud Firestore is authoritative
-        const unsubDept = onSnapshot(collection(db, "departments"), (snap) => {
-          if (!snap.empty && isMounted) {
-            const remoteDepts = snap.docs.map((d) => d.data() as Department);
-            const merged = initialDepartments.map((initD) => {
-              const remote = remoteDepts.find((r) => r.slug === initD.slug);
-              if (!remote) return initD;
-              return {
-                ...initD,
-                ...remote,
-                image: remote.image || initD.image,
-                laboratories: Array.isArray(remote.laboratories) && remote.laboratories.length > 0 ? remote.laboratories : initD.laboratories,
-                keyDomains: Array.isArray(remote.keyDomains) && remote.keyDomains.length > 0 ? remote.keyDomains : initD.keyDomains,
-                careerProspects: Array.isArray(remote.careerProspects) && remote.careerProspects.length > 0 ? remote.careerProspects : initD.careerProspects,
-                mission: Array.isArray(remote.mission) && remote.mission.length > 0 ? remote.mission : initD.mission,
-              };
-            });
-            remoteDepts.forEach((r) => {
-              if (!merged.some((m) => m.slug === r.slug)) {
-                merged.push(r);
-              }
-            });
-            setDepartmentsState(merged);
-            setStored(STORAGE_KEYS.departments, merged);
-            notifyAll();
-          }
-        }, (err) => handleListenerError("departments", err));
-        unsubs.push(unsubDept);
-
-        // 3. Homepage listener - Cloud Firestore is authoritative
-        const unsubHome = onSnapshot(doc(db, "homepage", "content"), (snap) => {
-          if (snap.exists() && isMounted) {
-            const data = snap.data() as Partial<HomepageSettings>;
-            const merged = { ...defaultHomepage, ...data };
-            setHomepageState(merged);
-            setStored(STORAGE_KEYS.homepage, merged);
-            notifyAll();
-          }
-        }, (err) => handleListenerError("homepage", err));
-        unsubs.push(unsubHome);
-
-        // 4. Facilities listener - Cloud Firestore is authoritative
-        const unsubFac = onSnapshot(collection(db, "facilities"), (snap) => {
-          try {
-            if (!snap.empty && isMounted) {
-              const remoteFacs = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeFacility[];
-              const merged = initialFacilities.map((initF) => {
-                const remote = remoteFacs.find((r) => r.id === initF.id);
-                if (!remote) return initF;
-                return {
-                  ...initF,
-                  ...remote,
-                  image: remote.image || initF.image,
-                  keyFeatures: Array.isArray(remote.keyFeatures) && remote.keyFeatures.length > 0 ? remote.keyFeatures : initF.keyFeatures,
-                };
-              });
-              remoteFacs.forEach((r) => {
-                if (!merged.some((m) => m.id === r.id)) {
-                  merged.push(r);
-                }
-              });
-              setFacilitiesState(merged);
-              setStored(STORAGE_KEYS.facilities, merged);
-              notifyAll();
-            }
-          } catch (err) {
-            handleListenerError("facilities", err);
-          }
-        }, (err) => handleListenerError("facilities", err));
-        unsubs.push(unsubFac);
-
-        // 5. Announcements listener
-        const unsubAnn = onSnapshot(collection(db, collectionNames.announcements), (snap) => {
-          try {
-            if (!snap.empty && isMounted) {
-              const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as Announcement[];
-              setAnnouncementsState(list);
-              setStored(STORAGE_KEYS.announcements, list);
-              notifyAll();
-            }
-          } catch (err) {
-            handleListenerError("announcements", err);
-          }
-        }, (err) => handleListenerError("announcements", err));
-        unsubs.push(unsubAnn);
-
-        // 6. Events listener
-        const unsubEvt = onSnapshot(collection(db, collectionNames.events), (snap) => {
-          try {
-            if (!snap.empty && isMounted) {
-              const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeEvent[];
-              setEventsState(list);
-              setStored(STORAGE_KEYS.events, list);
-              notifyAll();
-            }
-          } catch (err) {
-            handleListenerError("events", err);
-          }
-        }, (err) => handleListenerError("events", err));
-        unsubs.push(unsubEvt);
-
-        // 7. Gallery listener
-        const unsubGal = onSnapshot(collection(db, collectionNames.gallery), (snap) => {
-          try {
-            if (!snap.empty && isMounted) {
-              const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as GalleryItem[];
-              setGalleryState(list);
-              setStored(STORAGE_KEYS.gallery, list);
-              notifyAll();
-            }
-          } catch (err) {
-            handleListenerError("gallery", err);
-          }
-        }, (err) => handleListenerError("gallery", err));
-        unsubs.push(unsubGal);
-
-        // 8. Leadership listener
-        const unsubLead = onSnapshot(doc(db, collectionNames.about, "leadership"), (snap) => {
-          try {
-            if (snap.exists() && isMounted) {
-              const data = snap.data() as Partial<Leadership>;
-              const merged = { ...initialLeadership, ...data };
-              setLeadershipState(merged);
-              setStored(STORAGE_KEYS.leadership, merged);
-              notifyAll();
-            }
-          } catch (err) {
-            handleListenerError("about/leadership", err);
-          }
-        }, (err) => handleListenerError("about/leadership", err));
-        unsubs.push(unsubLead);
-
-        // 9. Placements listener
-        const unsubPlace = onSnapshot(doc(db, collectionNames.placements, "overview"), (snap) => {
-          try {
-            if (snap.exists() && isMounted) {
-              const data = snap.data() as Partial<PlacementData>;
-              const merged = { ...initialPlacements, ...data };
-              setPlacementsState(merged);
-              setStored(STORAGE_KEYS.placements, merged);
-              notifyAll();
-            }
-          } catch (err) {
-            handleListenerError("placements/overview", err);
-          }
-        }, (err) => handleListenerError("placements/overview", err));
-        unsubs.push(unsubPlace);
-
-        // 10. Enquiries listener (Admin only - attached when authenticated)
-        let unsubEnq: (() => void) | null = null;
-        const unsubAuth = onAuthStateChanged(auth, (user) => {
-          if (user && isMounted && !unsubEnq) {
-            unsubEnq = onSnapshot(
-              collection(db, "enquiries"),
-              (snap) => {
-                if (isMounted) {
-                  const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as AdmissionEnquiry[];
-                  setEnquiriesState(list);
-                  setStored(STORAGE_KEYS.enquiries, list);
-                  notifyAll();
-                }
-              },
-              (err) => handleListenerError("enquiries", err)
-            );
-          } else if (!user && unsubEnq) {
-            unsubEnq();
-            unsubEnq = null;
-          }
-        });
-        unsubs.push(() => {
-          unsubAuth();
-          if (unsubEnq) unsubEnq();
-        });
-
-      } catch (err) {
-        console.warn("Firestore listeners initialization fallback to cached data:", err);
-      }
-    }
-
-    initFirestoreListeners();
-
-    return () => {
-      isMounted = false;
-      unsubs.forEach((u) => u());
-    };
-  }, []);
+  const setFacilitiesState = (val: CollegeFacility[]) => {
+    globalFacilities = val;
+    setStored(STORAGE_KEYS.facilities, val);
+    notifyAll();
+  };
+  const setHomepageState = (val: HomepageSettings) => {
+    globalHomepage = val;
+    setStored(STORAGE_KEYS.homepage, val);
+    notifyAll();
+  };
+  const setPlacementsState = (val: PlacementData) => {
+    globalPlacements = val;
+    setStored(STORAGE_KEYS.placements, val);
+    notifyAll();
+  };
+  const setLeadershipState = (val: Leadership) => {
+    globalLeadership = val;
+    setStored(STORAGE_KEYS.leadership, val);
+    notifyAll();
+  };
+  const setAnnouncementsState = (val: Announcement[]) => {
+    globalAnnouncements = val;
+    setStored(STORAGE_KEYS.announcements, val);
+    notifyAll();
+  };
+  const setEventsState = (val: CollegeEvent[]) => {
+    globalEvents = val;
+    setStored(STORAGE_KEYS.events, val);
+    notifyAll();
+  };
+  const setGalleryState = (val: GalleryItem[]) => {
+    globalGallery = val;
+    setStored(STORAGE_KEYS.gallery, val);
+    notifyAll();
+  };
+  const setEnquiriesState = (val: AdmissionEnquiry[]) => {
+    globalEnquiries = val;
+    setStored(STORAGE_KEYS.enquiries, val);
+    notifyAll();
+  };
 
   const syncToFirestore = async (docRef: any, data: any, description: string) => {
     if (!isFirebaseConfigured) {

@@ -30,6 +30,7 @@ import {
 import { site as staticSite, imagery } from "@/data/site";
 import { SectionHeader } from "@/components/site/SiteLayout";
 import { useCollegeStore } from "@/lib/college-store";
+import { SafeSectionBoundary } from "@/components/site/SafeSectionBoundary";
 import type { GalleryItem } from "@/data/site";
 
 export const Route = createFileRoute("/")({
@@ -121,72 +122,121 @@ function HomePage() {
 
   const accreditationParts = getAccreditationDisplay(homepage.accreditation || "NAAC A+");
 
+  const heroFallback = (
+    <section className="college-hero relative overflow-hidden bg-[#07172f]">
+      <img
+        src={imagery.campusMain}
+        alt={`${site.name} Campus Academic Block`}
+        className="hero-bg-image"
+        width={1536}
+        height={1024}
+      />
+      <div className="hero-overlay-gradient" />
+      <div className="absolute inset-0 hero-grid-lines pointer-events-none" />
+      <div className="college-container relative z-10 w-full py-12 sm:py-16 md:py-24">
+        <div className="hero-content-wrap max-w-3xl">
+          <div data-reveal="fade-in" className="hero-tag inline-flex items-center gap-2 mb-4 bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs text-white">
+            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+            <span className="font-semibold tracking-wide">
+              {`B.Tech Admissions Open · Approved by AICTE · Counseling Code: ${site.code}`}
+            </span>
+          </div>
+          <h1 data-reveal="fade-up" data-reveal-delay="1" className="hero-main-title text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-4">
+            {site.name}
+          </h1>
+          <p data-reveal="fade-up" data-reveal-delay="2" className="hero-subtitle text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed mb-8 max-w-2xl">
+            {site.tagline}
+          </p>
+          <div data-reveal="fade-up" data-reveal-delay="3" className="hero-cta-group flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+            <Link
+              to="/admissions"
+              className="bg-[#d97706] hover:bg-[#b45309] text-white px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all btn-institutional"
+            >
+              <span>Explore Admissions</span>
+              <ArrowRight size={16} />
+            </Link>
+            <Link
+              to="/departments"
+              className="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all backdrop-blur-sm"
+            >
+              <span>Undergraduate Programs</span>
+              <ChevronRight size={16} />
+            </Link>
+          </div>
+        </div>
+      </div>
+    </section>
+  );
+
   return (
     <>
       {/* 1. College Hero Section (Institutional Facade with High Legibility Dark Overlay) */}
-      <section className="college-hero relative overflow-hidden bg-[#07172f]">
-        <img
-          src={homepage.heroImage || imagery.campusMain}
-          alt={`${site.name} Campus Academic Block`}
-          className="hero-bg-image"
-          width={1536}
-          height={1024}
-        />
-        <div className="hero-overlay-gradient" />
+      <SafeSectionBoundary sectionName="Hero" fallback={heroFallback}>
+        <section className="college-hero relative overflow-hidden bg-[#07172f]">
+          <img
+            src={homepage.heroImage || imagery.campusMain}
+            alt={`${site.name} Campus Academic Block`}
+            className="hero-bg-image"
+            width={1536}
+            height={1024}
+          />
+          <div className="hero-overlay-gradient" />
 
-        {/* Subtle Architectural Grid Lines Overlay with Ambient Drift */}
-        <div className="absolute inset-0 hero-grid-lines pointer-events-none" />
+          {/* Subtle Architectural Grid Lines Overlay with Ambient Drift */}
+          <div className="absolute inset-0 hero-grid-lines pointer-events-none" />
 
-        <div className="college-container relative z-10 w-full py-12 sm:py-16 md:py-24">
-          <div className="hero-content-wrap max-w-3xl">
-            {/* Accreditation & Announcement Badge */}
-            <div data-reveal="fade-in" className="hero-tag inline-flex items-center gap-2 mb-4 bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs text-white">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-              <span className="font-semibold tracking-wide">
-                {homepage.topBannerText || `B.Tech Admissions Open · Approved by AICTE · Counseling Code: ${site.code}`}
-              </span>
-            </div>
+          <div className="college-container relative z-10 w-full py-12 sm:py-16 md:py-24">
+            <div className="hero-content-wrap max-w-3xl">
+              {/* Accreditation & Announcement Badge */}
+              <div data-reveal="fade-in" className="hero-tag inline-flex items-center gap-2 mb-4 bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs text-white">
+                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
+                <span className="font-semibold tracking-wide">
+                  {homepage.topBannerText || `B.Tech Admissions Open · Approved by AICTE · Counseling Code: ${site.code}`}
+                </span>
+              </div>
 
-            <h1 data-reveal="fade-up" data-reveal-delay="1" className="hero-main-title text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-4">
-              {homepage.heroHeading || site.name}
-            </h1>
+              <h1 data-reveal="fade-up" data-reveal-delay="1" className="hero-main-title text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-4">
+                {homepage.heroHeading || site.name}
+              </h1>
 
-            <p data-reveal="fade-up" data-reveal-delay="2" className="hero-subtitle text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed mb-8 max-w-2xl">
-              {homepage.heroSubtitle || site.tagline}
-            </p>
+              <p data-reveal="fade-up" data-reveal-delay="2" className="hero-subtitle text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed mb-8 max-w-2xl">
+                {homepage.heroSubtitle || site.tagline}
+              </p>
 
-            <div data-reveal="fade-up" data-reveal-delay="3" className="hero-cta-group flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
-              <Link
-                to={homepage.heroPrimaryBtnLink || "/admissions"}
-                className="bg-[#d97706] hover:bg-[#b45309] text-white px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all btn-institutional"
-              >
-                <span>{homepage.heroPrimaryBtnText || "Admissions & Enquiries"}</span>
-                <ArrowRight size={16} />
-              </Link>
+              <div data-reveal="fade-up" data-reveal-delay="3" className="hero-cta-group flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+                <Link
+                  to={homepage.heroPrimaryBtnLink || "/admissions"}
+                  className="bg-[#d97706] hover:bg-[#b45309] text-white px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all btn-institutional"
+                >
+                  <span>{homepage.heroPrimaryBtnText || "Explore Admissions"}</span>
+                  <ArrowRight size={16} />
+                </Link>
 
-              <Link
-                to={homepage.heroSecondaryBtnLink || "/departments"}
-                className="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all backdrop-blur-sm"
-              >
-                <span>{homepage.heroSecondaryBtnText || "Explore Academic Programs"}</span>
-                <ChevronRight size={16} />
-              </Link>
+                <Link
+                  to={homepage.heroSecondaryBtnLink || "/departments"}
+                  className="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all backdrop-blur-sm"
+                >
+                  <span>{homepage.heroSecondaryBtnText || "Undergraduate Programs"}</span>
+                  <ChevronRight size={16} />
+                </Link>
+              </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </SafeSectionBoundary>
 
       {/* Institutional Accreditation & Autonomy Highlight Section */}
-      {homepage.showAccreditation !== false && (
-        <section
-          id="accreditation-highlight"
-          aria-label="Accreditation and Institutional Status"
-          className={`relative z-20 border-b transition-colors duration-300 ${
-            homepage.homepageHighlight !== false
-              ? "bg-[#07172f] text-white border-amber-500/25 shadow-md"
-              : "bg-white text-slate-900 border-slate-200 shadow-xs"
-          }`}
-        >
+      <SafeSectionBoundary sectionName="Accreditation Highlight">
+        {homepage.showAccreditation !== false && (
+          <section
+            id="accreditation-highlight"
+            aria-label="Accreditation and Institutional Status"
+            className={`relative z-20 border-b transition-colors duration-300 ${
+              homepage.homepageHighlight !== false
+                ? "bg-[#07172f] text-white border-amber-500/25 shadow-md"
+                : "bg-white text-slate-900 border-slate-200 shadow-xs"
+            }`}
+          >
           {/* Subtle architectural gold accent border */}
           {homepage.homepageHighlight !== false && (
             <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-80" />
@@ -341,10 +391,12 @@ function HomePage() {
           </div>
         </section>
       )}
+      </SafeSectionBoundary>
 
       {/* 2. PLACEMENT HIGHLIGHTS (Directly below Autonomous / NAAC A+ section; CMS controlled) */}
-      <section className="py-8 sm:py-10 bg-slate-50 border-b border-slate-200" aria-label="Placement Highlights">
-        <div className="college-container">
+      <SafeSectionBoundary sectionName="Placement Highlights">
+        <section className="py-8 sm:py-10 bg-slate-50 border-b border-slate-200" aria-label="Placement Highlights">
+          <div className="college-container">
           {/* Section Header */}
           <div data-reveal="fade-up" className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-7 border-b border-slate-200 pb-4">
             <div>
@@ -664,6 +716,7 @@ function HomePage() {
           )}
         </div>
       </section>
+      </SafeSectionBoundary>
 
       {/* 3. Key Institutional Matrix Strip (ONLY Real/Admin CMS Data) */}
       <section className="stats-strip bg-[#0b224d] text-white border-y border-white/10 py-5">
@@ -913,71 +966,73 @@ function HomePage() {
       </section>
 
       {/* 6. Academic Programs / Departments Showcase (Dynamically Loaded from Firestore/Store) */}
-      <section className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
-        <div className="college-container">
-          <SectionHeader
-            eyebrow="Academic Disciplines"
-            title="Undergraduate Engineering Departments"
-            subtitle="Approved 4-Year B.Tech degree programs structured to combine theoretical foundations with intensive laboratory training."
-          />
+      <SafeSectionBoundary sectionName="Academic Departments">
+        <section className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
+          <div className="college-container">
+            <SectionHeader
+              eyebrow="Academic Disciplines"
+              title="Undergraduate Engineering Departments"
+              subtitle="Approved 4-Year B.Tech degree programs structured to combine theoretical foundations with intensive laboratory training."
+            />
 
-          <div className="departments-grid-wrap grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {departments.map((dept, idx) => (
-              <div
-                key={dept.code}
-                data-reveal="fade-up"
-                data-reveal-delay={String((idx % 3) + 1)}
-                className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition flex flex-col college-card-interactive"
-              >
-                <div className="relative aspect-[16/10] overflow-hidden img-zoom-hover">
-                  <img
-                    src={dept.image}
-                    alt={dept.title}
-                    loading="lazy"
-                    className="w-full h-full object-cover transition-transform duration-500"
-                  />
-                  <div className="absolute top-2.5 left-2.5 bg-[#0b224d] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm">
-                    Branch {dept.code}
+            <div className="departments-grid-wrap grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {departments.map((dept, idx) => (
+                <div
+                  key={dept.code}
+                  data-reveal="fade-up"
+                  data-reveal-delay={String((idx % 3) + 1)}
+                  className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition flex flex-col college-card-interactive"
+                >
+                  <div className="relative aspect-[16/10] overflow-hidden img-zoom-hover">
+                    <img
+                      src={dept.image}
+                      alt={dept.title}
+                      loading="lazy"
+                      className="w-full h-full object-cover transition-transform duration-500"
+                    />
+                    <div className="absolute top-2.5 left-2.5 bg-[#0b224d] text-white text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm">
+                      Branch {dept.code}
+                    </div>
+                    <div className="absolute top-2.5 right-2.5 bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm">
+                      {dept.intake} Seats
+                    </div>
                   </div>
-                  <div className="absolute top-2.5 right-2.5 bg-amber-500 text-slate-950 text-[10px] font-extrabold uppercase px-2 py-0.5 rounded shadow-sm">
-                    {dept.intake} Seats
+
+                  <div className="p-5 flex flex-col flex-1">
+                    <div className="flex items-center gap-2 mb-2">
+                      {getDeptIcon(dept.slug)}
+                      <span className="text-[11px] font-bold uppercase text-slate-600">
+                        Approved Intake: <strong className="text-emerald-800">{dept.intake} Seats</strong>
+                      </span>
+                    </div>
+
+                    <h3 className="text-base font-extrabold text-[#0b224d] mb-1.5 line-clamp-1">
+                      {dept.shortTitle}
+                    </h3>
+                    <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4 flex-1">
+                      {dept.overview}
+                    </p>
+
+                    <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 mb-4">
+                      <span>HOD: <strong className="text-slate-700">{dept.hod.name}</strong></span>
+                      <span>4-Year B.Tech</span>
+                    </div>
+
+                    <Link
+                      to="/departments"
+                      search={{ dept: dept.slug }}
+                      className="w-full text-center bg-slate-100 hover:bg-[#0b224d] text-[#0b224d] hover:text-white py-2 rounded text-xs font-bold uppercase tracking-wider transition-colors mt-auto flex items-center justify-center gap-1.5"
+                    >
+                      <span>Department Profile & Labs</span>
+                      <ChevronRight size={13} />
+                    </Link>
                   </div>
                 </div>
-
-                <div className="p-5 flex flex-col flex-1">
-                  <div className="flex items-center gap-2 mb-2">
-                    {getDeptIcon(dept.slug)}
-                    <span className="text-[11px] font-bold uppercase text-slate-600">
-                      Approved Intake: <strong className="text-emerald-800">{dept.intake} Seats</strong>
-                    </span>
-                  </div>
-
-                  <h3 className="text-base font-extrabold text-[#0b224d] mb-1.5 line-clamp-1">
-                    {dept.shortTitle}
-                  </h3>
-                  <p className="text-xs text-slate-600 line-clamp-2 leading-relaxed mb-4 flex-1">
-                    {dept.overview}
-                  </p>
-
-                  <div className="pt-3 border-t border-slate-100 flex items-center justify-between text-[11px] text-slate-500 mb-4">
-                    <span>HOD: <strong className="text-slate-700">{dept.hod.name}</strong></span>
-                    <span>4-Year B.Tech</span>
-                  </div>
-
-                  <Link
-                    to="/departments"
-                    search={{ dept: dept.slug }}
-                    className="w-full text-center bg-slate-100 hover:bg-[#0b224d] text-[#0b224d] hover:text-white py-2 rounded text-xs font-bold uppercase tracking-wider transition-colors mt-auto flex items-center justify-center gap-1.5"
-                  >
-                    <span>Department Profile & Labs</span>
-                    <ChevronRight size={13} />
-                  </Link>
-                </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </SafeSectionBoundary>
 
       {/* 7. Why Choose PK College (Institutional Strengths Grid) */}
       <section className="py-12 sm:py-16 bg-white border-b border-slate-200">
@@ -1078,294 +1133,302 @@ function HomePage() {
       </section>
 
       {/* 8. Campus & Facilities Showcase */}
-      <section className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
-        <div className="college-container">
-          <SectionHeader
-            eyebrow="Campus Life & Infrastructure"
-            title="World-Class Facilities for Technical Mastery"
-            subtitle="A comprehensive learning, residential, and recreational environment with modern infrastructure."
-            dataReveal="fade-up"
-          />
+      <SafeSectionBoundary sectionName="Campus Facilities">
+        <section className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
+          <div className="college-container">
+            <SectionHeader
+              eyebrow="Campus Life & Infrastructure"
+              title="World-Class Facilities for Technical Mastery"
+              subtitle="A comprehensive learning, residential, and recreational environment with modern infrastructure."
+              dataReveal="fade-up"
+            />
 
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
-            {facilities.slice(0, 4).map((fac, idx) => (
-              <div
-                key={fac.id}
-                data-reveal="fade-up"
-                data-reveal-delay={String(idx + 1)}
-                className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition flex flex-col college-card-interactive"
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6">
+              {facilities.slice(0, 4).map((fac, idx) => (
+                <div
+                  key={fac.id}
+                  data-reveal="fade-up"
+                  data-reveal-delay={String(idx + 1)}
+                  className="bg-white border border-slate-200 rounded-lg overflow-hidden shadow-xs hover:shadow-md transition flex flex-col college-card-interactive"
+                >
+                  <div className="img-zoom-hover aspect-[16/10] overflow-hidden bg-slate-100">
+                    <img src={fac.image} alt={fac.title} className="w-full h-full object-cover" loading="lazy" />
+                  </div>
+                  <div className="p-4 flex flex-col flex-1">
+                    <h4 className="font-bold text-[#0b224d] text-base mb-1">{fac.title}</h4>
+                    <p className="text-xs text-slate-600 line-clamp-3 mb-4 leading-relaxed">{fac.description}</p>
+                    <Link
+                      to="/facilities"
+                      className="text-xs font-bold text-[#b45309] hover:underline flex items-center gap-1 mt-auto"
+                    >
+                      <span>Explore Facility</span>
+                      <ChevronRight size={13} />
+                    </Link>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            <div className="text-center mt-8" data-reveal="fade-up" data-reveal-delay="3">
+              <Link
+                to="/facilities"
+                className="inline-flex items-center gap-2 bg-[#0b224d] hover:bg-[#102a5c] text-white px-6 py-2.5 rounded font-bold text-xs uppercase tracking-wider btn-institutional shadow-xs"
               >
-                <div className="img-zoom-hover aspect-[16/10] overflow-hidden bg-slate-100">
-                  <img src={fac.image} alt={fac.title} className="w-full h-full object-cover" loading="lazy" />
-                </div>
-                <div className="p-4 flex flex-col flex-1">
-                  <h4 className="font-bold text-[#0b224d] text-base mb-1">{fac.title}</h4>
-                  <p className="text-xs text-slate-600 line-clamp-3 mb-4 leading-relaxed">{fac.description}</p>
-                  <Link
-                    to="/facilities"
-                    className="text-xs font-bold text-[#b45309] hover:underline flex items-center gap-1 mt-auto"
-                  >
-                    <span>Explore Facility</span>
-                    <ChevronRight size={13} />
-                  </Link>
-                </div>
-              </div>
-            ))}
+                <span>View All Campus Facilities & Amenities</span>
+                <ArrowRight size={14} />
+              </Link>
+            </div>
           </div>
-
-          <div className="text-center mt-8" data-reveal="fade-up" data-reveal-delay="3">
-            <Link
-              to="/facilities"
-              className="inline-flex items-center gap-2 bg-[#0b224d] hover:bg-[#102a5c] text-white px-6 py-2.5 rounded font-bold text-xs uppercase tracking-wider btn-institutional shadow-xs"
-            >
-              <span>View All Campus Facilities & Amenities</span>
-              <ArrowRight size={14} />
-            </Link>
-          </div>
-        </div>
-      </section>
+        </section>
+      </SafeSectionBoundary>
 
       {/* 9. Dual Section: Notices & Circulars + Upcoming Campus Events */}
-      <section className="py-12 sm:py-16 bg-white border-b border-slate-200 w-full overflow-hidden">
-        <div className="college-container w-full max-w-full">
-          <div className="notice-events-grid grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 w-full max-w-full min-w-0">
-            {/* Announcements Panel */}
-            <div className="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-lg p-3.5 sm:p-5 md:p-6 shadow-xs w-full max-w-full min-w-0 box-border">
-              <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#991b1b] animate-ping shrink-0" />
-                  <h3 className="text-sm sm:text-base font-extrabold text-[#0b224d] truncate">Notices &amp; Circulars</h3>
+      <SafeSectionBoundary sectionName="Notices and Events">
+        <section className="py-12 sm:py-16 bg-white border-b border-slate-200 w-full overflow-hidden">
+          <div className="college-container w-full max-w-full">
+            <div className="notice-events-grid grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 w-full max-w-full min-w-0">
+              {/* Announcements Panel */}
+              <div className="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-lg p-3.5 sm:p-5 md:p-6 shadow-xs w-full max-w-full min-w-0 box-border">
+                <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-2.5 h-2.5 rounded-full bg-[#991b1b] animate-ping shrink-0" />
+                    <h3 className="text-sm sm:text-base font-extrabold text-[#0b224d] truncate">Notices &amp; Circulars</h3>
+                  </div>
+                  <Link
+                    to="/announcements"
+                    className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1 shrink-0 whitespace-nowrap"
+                  >
+                    <span>All Notices</span>
+                    <ChevronRight size={14} />
+                  </Link>
                 </div>
-                <Link
-                  to="/announcements"
-                  className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1 shrink-0 whitespace-nowrap"
-                >
-                  <span>All Notices</span>
-                  <ChevronRight size={14} />
-                </Link>
+
+                <div className="space-y-3 w-full min-w-0">
+                  {announcements.slice(0, 4).map((ann, idx) => {
+                    const parts = ann.date.split("-");
+                    const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+                    const day = parts[2] || "01";
+                    const month = monthNames[parseInt(parts[1] || "1", 10) - 1] || "Sep";
+
+                    return (
+                      <div
+                        key={ann.id}
+                        data-reveal="fade-up"
+                        data-reveal-delay={String(idx + 1)}
+                        className="p-3 bg-white border border-slate-200 rounded flex items-start gap-2.5 sm:gap-3 hover:border-slate-300 transition w-full max-w-full min-w-0 box-border"
+                        style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                      >
+                        <div className="text-center bg-[#0b224d] text-white px-2 py-1.5 rounded flex flex-col justify-center shrink-0 w-11 sm:w-12 box-border">
+                          <span className="text-xs font-bold leading-none">{day}</span>
+                          <span className="text-[10px] uppercase text-amber-300 font-semibold mt-0.5 leading-none">{month}</span>
+                        </div>
+
+                        <div className="flex-1 min-w-0 w-full" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
+                          <div className="flex flex-wrap items-center gap-1.5 mb-1 min-w-0">
+                            <span className="text-[10px] font-bold text-[#b45309] bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block break-normal">
+                              {ann.category}
+                            </span>
+                            {ann.isUrgent && (
+                              <span className="text-[10px] font-extrabold uppercase bg-red-100 text-red-700 px-1.5 py-0.5 rounded inline-block break-normal">
+                                Important
+                              </span>
+                            )}
+                          </div>
+                          <Link
+                            to="/announcements"
+                            className="text-xs font-bold text-[#0b224d] hover:underline block leading-snug"
+                            style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                          >
+                            {ann.title}
+                          </Link>
+                          {ann.summary && (
+                            <p
+                              className="text-[11px] text-slate-500 mt-1 leading-relaxed"
+                              style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                            >
+                              {ann.summary}
+                            </p>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
               </div>
 
-              <div className="space-y-3 w-full min-w-0">
-                {announcements.slice(0, 4).map((ann, idx) => {
-                  const parts = ann.date.split("-");
-                  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-                  const day = parts[2] || "01";
-                  const month = monthNames[parseInt(parts[1] || "1", 10) - 1] || "Sep";
+              {/* Events Panel */}
+              <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-lg p-3.5 sm:p-5 md:p-6 shadow-xs w-full max-w-full min-w-0 box-border">
+                <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2 min-w-0">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <Calendar size={18} className="text-[#0b224d] shrink-0" />
+                    <h3 className="text-sm sm:text-base font-extrabold text-[#0b224d] truncate">Upcoming Events</h3>
+                  </div>
+                  <Link
+                    to="/events"
+                    className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1 shrink-0 whitespace-nowrap"
+                  >
+                    <span>All Events</span>
+                    <ChevronRight size={14} />
+                  </Link>
+                </div>
 
-                  return (
+                <div className="space-y-3 w-full min-w-0">
+                  {events.slice(0, 3).map((evt, idx) => (
                     <div
-                      key={ann.id}
+                      key={evt.id}
                       data-reveal="fade-up"
                       data-reveal-delay={String(idx + 1)}
-                      className="p-3 bg-white border border-slate-200 rounded flex items-start gap-2.5 sm:gap-3 hover:border-slate-300 transition w-full max-w-full min-w-0 box-border"
+                      className="p-3 bg-white border border-slate-200 rounded flex flex-row items-start gap-2.5 sm:gap-3 hover:border-slate-300 transition w-full max-w-full min-w-0 box-border"
                       style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
                     >
-                      <div className="text-center bg-[#0b224d] text-white px-2 py-1.5 rounded flex flex-col justify-center shrink-0 w-11 sm:w-12 box-border">
-                        <span className="text-xs font-bold leading-none">{day}</span>
-                        <span className="text-[10px] uppercase text-amber-300 font-semibold mt-0.5 leading-none">{month}</span>
+                      {/* Responsive Event Image Container */}
+                      <div className="w-14 h-14 xs:w-16 xs:h-16 sm:w-18 sm:h-18 md:w-16 md:h-16 shrink-0 rounded overflow-hidden border border-slate-200 bg-slate-100 relative aspect-square box-border">
+                        <img
+                          src={evt.image}
+                          alt={evt.title}
+                          className="w-full h-full object-cover block"
+                          loading="lazy"
+                        />
                       </div>
 
                       <div className="flex-1 min-w-0 w-full" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
-                        <div className="flex flex-wrap items-center gap-1.5 mb-1 min-w-0">
-                          <span className="text-[10px] font-bold text-[#b45309] bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block break-normal">
-                            {ann.category}
-                          </span>
-                          {ann.isUrgent && (
-                            <span className="text-[10px] font-extrabold uppercase bg-red-100 text-red-700 px-1.5 py-0.5 rounded inline-block break-normal">
-                              Important
-                            </span>
-                          )}
-                        </div>
-                        <Link
-                          to="/announcements"
-                          className="text-xs font-bold text-[#0b224d] hover:underline block leading-snug"
+                        <span
+                          className="text-[10px] font-bold text-[#b45309] block mb-1 leading-snug"
                           style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
                         >
-                          {ann.title}
-                        </Link>
-                        {ann.summary && (
-                          <p
-                            className="text-[11px] text-slate-500 mt-1 leading-relaxed"
-                            style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
-                          >
-                            {ann.summary}
-                          </p>
-                        )}
+                          {evt.category} · {evt.date}
+                        </span>
+                        <h4
+                          className="text-xs font-bold text-[#0b224d] mb-1 leading-snug"
+                          style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                        >
+                          {evt.title}
+                        </h4>
+                        <p
+                          className="text-[11px] text-slate-500 flex items-start gap-1 leading-snug mt-0.5"
+                          style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                        >
+                          <MapPin size={11} className="shrink-0 mt-0.5 text-slate-400" />
+                          <span className="min-w-0" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
+                            {evt.venue}
+                          </span>
+                        </p>
                       </div>
                     </div>
-                  );
-                })}
-              </div>
-            </div>
-
-            {/* Events Panel */}
-            <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-lg p-3.5 sm:p-5 md:p-6 shadow-xs w-full max-w-full min-w-0 box-border">
-              <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2 min-w-0">
-                <div className="flex items-center gap-2 min-w-0">
-                  <Calendar size={18} className="text-[#0b224d] shrink-0" />
-                  <h3 className="text-sm sm:text-base font-extrabold text-[#0b224d] truncate">Upcoming Events</h3>
+                  ))}
                 </div>
-                <Link
-                  to="/events"
-                  className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1 shrink-0 whitespace-nowrap"
-                >
-                  <span>All Events</span>
-                  <ChevronRight size={14} />
-                </Link>
-              </div>
-
-              <div className="space-y-3 w-full min-w-0">
-                {events.slice(0, 3).map((evt, idx) => (
-                  <div
-                    key={evt.id}
-                    data-reveal="fade-up"
-                    data-reveal-delay={String(idx + 1)}
-                    className="p-3 bg-white border border-slate-200 rounded flex flex-row items-start gap-2.5 sm:gap-3 hover:border-slate-300 transition w-full max-w-full min-w-0 box-border"
-                    style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
-                  >
-                    {/* Responsive Event Image Container */}
-                    <div className="w-14 h-14 xs:w-16 xs:h-16 sm:w-18 sm:h-18 md:w-16 md:h-16 shrink-0 rounded overflow-hidden border border-slate-200 bg-slate-100 relative aspect-square box-border">
-                      <img
-                        src={evt.image}
-                        alt={evt.title}
-                        className="w-full h-full object-cover block"
-                        loading="lazy"
-                      />
-                    </div>
-
-                    <div className="flex-1 min-w-0 w-full" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
-                      <span
-                        className="text-[10px] font-bold text-[#b45309] block mb-1 leading-snug"
-                        style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
-                      >
-                        {evt.category} · {evt.date}
-                      </span>
-                      <h4
-                        className="text-xs font-bold text-[#0b224d] mb-1 leading-snug"
-                        style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
-                      >
-                        {evt.title}
-                      </h4>
-                      <p
-                        className="text-[11px] text-slate-500 flex items-start gap-1 leading-snug mt-0.5"
-                        style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
-                      >
-                        <MapPin size={11} className="shrink-0 mt-0.5 text-slate-400" />
-                        <span className="min-w-0" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
-                          {evt.venue}
-                        </span>
-                      </p>
-                    </div>
-                  </div>
-                ))}
               </div>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </SafeSectionBoundary>
 
       {/* 10. Photo Gallery Showcase with Click-to-Preview Modal */}
-      <section className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
-        <div className="college-container">
-          <div className="flex items-center justify-between mb-8" data-reveal="fade-up">
-            <div>
-              <span className="text-xs font-bold text-[#b45309] uppercase tracking-wider block mb-1">
-                Campus Impressions
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0b224d]">Life at PK College</h2>
-            </div>
-            <Link
-              to="/gallery"
-              className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1"
-            >
-              <span>View Full Gallery</span>
-              <ChevronRight size={14} />
-            </Link>
-          </div>
-
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-            {galleryItems.slice(0, 4).map((item, idx) => (
-              <div
-                key={item.id}
-                data-reveal="image-reveal"
-                data-reveal-delay={String(idx + 1)}
-                onClick={() => setActiveGalleryPreview(item)}
-                className="relative group overflow-hidden rounded-lg border border-slate-200 aspect-[4/3] img-zoom-hover cursor-pointer shadow-xs college-card-interactive"
+      <SafeSectionBoundary sectionName="Photo Gallery">
+        <section className="py-12 sm:py-16 bg-slate-50 border-b border-slate-200">
+          <div className="college-container">
+            <div className="flex items-center justify-between mb-8" data-reveal="fade-up">
+              <div>
+                <span className="text-xs font-bold text-[#b45309] uppercase tracking-wider block mb-1">
+                  Campus Impressions
+                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold text-[#0b224d]">Life at PK College</h2>
+              </div>
+              <Link
+                to="/gallery"
+                className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1"
               >
-                <img
-                  src={item.image}
-                  alt={item.title}
-                  className="w-full h-full object-cover transition-transform duration-300"
-                  loading="lazy"
-                />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3.5">
-                  <span className="text-white text-xs font-bold truncate">{item.title}</span>
-                  <div className="flex items-center justify-between text-amber-300 text-[10px] font-semibold mt-0.5">
-                    <span>{item.category}</span>
-                    <span className="flex items-center gap-1 text-white">
-                      <ZoomIn size={12} />
-                      <span>Enlarge</span>
-                    </span>
+                <span>View Full Gallery</span>
+                <ChevronRight size={14} />
+              </Link>
+            </div>
+
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+              {galleryItems.slice(0, 4).map((item, idx) => (
+                <div
+                  key={item.id}
+                  data-reveal="image-reveal"
+                  data-reveal-delay={String(idx + 1)}
+                  onClick={() => setActiveGalleryPreview(item)}
+                  className="relative group overflow-hidden rounded-lg border border-slate-200 aspect-[4/3] img-zoom-hover cursor-pointer shadow-xs college-card-interactive"
+                >
+                  <img
+                    src={item.image}
+                    alt={item.title}
+                    className="w-full h-full object-cover transition-transform duration-300"
+                    loading="lazy"
+                  />
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-3.5">
+                    <span className="text-white text-xs font-bold truncate">{item.title}</span>
+                    <div className="flex items-center justify-between text-amber-300 text-[10px] font-semibold mt-0.5">
+                      <span>{item.category}</span>
+                      <span className="flex items-center gap-1 text-white">
+                        <ZoomIn size={12} />
+                        <span>Enlarge</span>
+                      </span>
+                    </div>
                   </div>
                 </div>
-              </div>
-            ))}
+              ))}
+            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </SafeSectionBoundary>
 
       {/* 11. Admissions Action Callout Banner */}
-      <section className="bg-[#0b224d] text-white py-12 sm:py-16 border-t-4 border-[#d97706] relative overflow-hidden">
-        <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:20px_20px] hero-grid-lines pointer-events-none" />
+      <SafeSectionBoundary sectionName="Admissions Callout">
+        <section className="bg-[#0b224d] text-white py-12 sm:py-16 border-t-4 border-[#d97706] relative overflow-hidden">
+          <div className="absolute inset-0 bg-[radial-gradient(rgba(255,255,255,0.06)_1px,transparent_1px)] [background-size:20px_20px] hero-grid-lines pointer-events-none" />
 
-        <div className="college-container relative z-10">
-          <div className="flex flex-col lg:flex-row items-center justify-between gap-8 text-center lg:text-left">
-            <div data-reveal="fade-up">
-              <span className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1 block">
-                Admissions & Enrollment Desk
-              </span>
-              <h2 className="text-2xl sm:text-3xl font-extrabold mb-2">
-                Ready to Begin Your Engineering Career at PKCET?
-              </h2>
-              <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
-                Get branch counseling guidance, scholarship information, and laboratory tours directly from our admissions team.
-              </p>
-              <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mt-3 text-xs text-amber-200">
-                <span className="flex items-center gap-1.5">
-                  <Phone size={13} className="text-amber-400" />
-                  <span>{site.phone}</span>
+          <div className="college-container relative z-10">
+            <div className="flex flex-col lg:flex-row items-center justify-between gap-8 text-center lg:text-left">
+              <div data-reveal="fade-up">
+                <span className="text-xs font-bold uppercase tracking-wider text-amber-400 mb-1 block">
+                  Admissions & Enrollment Desk
                 </span>
-                <span className="flex items-center gap-1.5">
-                  <Mail size={13} className="text-amber-400" />
-                  <span>{site.email}</span>
-                </span>
-                <span className="bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">
-                  Counseling Code: {site.code}
-                </span>
+                <h2 className="text-2xl sm:text-3xl font-extrabold mb-2">
+                  Ready to Begin Your Engineering Career at PKCET?
+                </h2>
+                <p className="text-slate-300 text-xs sm:text-sm max-w-2xl leading-relaxed">
+                  Get branch counseling guidance, scholarship information, and laboratory tours directly from our admissions team.
+                </p>
+                <div className="flex flex-wrap items-center justify-center lg:justify-start gap-4 mt-3 text-xs text-amber-200">
+                  <span className="flex items-center gap-1.5">
+                    <Phone size={13} className="text-amber-400" />
+                    <span>{site.phone}</span>
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    <Mail size={13} className="text-amber-400" />
+                    <span>{site.email}</span>
+                  </span>
+                  <span className="bg-amber-400/20 text-amber-300 px-2 py-0.5 rounded font-mono font-bold">
+                    Counseling Code: {site.code}
+                  </span>
+                </div>
+              </div>
+
+              <div
+                className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto justify-center shrink-0"
+                data-reveal="fade-up"
+                data-reveal-delay="2"
+              >
+                <Link
+                  to="/admissions"
+                  className="w-full sm:w-auto text-center bg-[#d97706] hover:bg-[#b45309] text-white px-7 py-3 rounded-md font-bold text-xs uppercase tracking-wider shadow-md transition-colors btn-institutional"
+                >
+                  Apply / Enquire Online
+                </Link>
+                <Link
+                  to="/contact"
+                  className="w-full sm:w-auto text-center bg-transparent hover:bg-white/10 text-white border border-white/40 px-6 py-3 rounded-md font-bold text-xs uppercase tracking-wider transition-colors"
+                >
+                  Contact Campus Desk
+                </Link>
               </div>
             </div>
-
-            <div
-              className="flex flex-col sm:flex-row items-center gap-3 sm:gap-4 w-full sm:w-auto justify-center shrink-0"
-              data-reveal="fade-up"
-              data-reveal-delay="2"
-            >
-              <Link
-                to="/admissions"
-                className="w-full sm:w-auto text-center bg-[#d97706] hover:bg-[#b45309] text-white px-7 py-3 rounded-md font-bold text-xs uppercase tracking-wider shadow-md transition-colors btn-institutional"
-              >
-                Apply / Enquire Online
-              </Link>
-              <Link
-                to="/contact"
-                className="w-full sm:w-auto text-center bg-transparent hover:bg-white/10 text-white border border-white/40 px-6 py-3 rounded-md font-bold text-xs uppercase tracking-wider transition-colors"
-              >
-                Contact Campus Desk
-              </Link>
-            </div>
           </div>
-        </div>
-      </section>
+        </section>
+      </SafeSectionBoundary>
 
       {/* Lightbox Modal for Gallery Preview */}
       {activeGalleryPreview && (

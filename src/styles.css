@@ -1071,10 +1071,25 @@
 }
 
 /* Viewport Scroll Entrance Reveals */
+@keyframes autoRevealFallback {
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
 [data-reveal] {
   opacity: 0;
   transition: opacity 0.55s cubic-bezier(0.16, 1, 0.3, 1), transform 0.55s cubic-bezier(0.16, 1, 0.3, 1);
   will-change: opacity, transform;
+  animation: autoRevealFallback 0.01s forwards 1.2s;
+}
+
+/* College hero content must ALWAYS be visible immediately */
+.college-hero [data-reveal] {
+  opacity: 1 !important;
+  transform: none !important;
+  animation: none !important;
 }
 
 [data-reveal="fade-in"] {
