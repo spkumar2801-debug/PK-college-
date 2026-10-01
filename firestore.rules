@@ -59,6 +59,11 @@ service cloud.firestore {
       allow write: if isAuthenticated();
     }
 
+    match /achievements/{docId} {
+      allow read: if true;
+      allow write: if isAuthenticated();
+    }
+
     match /announcements/{annId} {
       allow read: if true;
       allow write: if isAuthenticated();

@@ -180,6 +180,16 @@ export function useCollegeStore() {
     let isMounted = true;
     const unsubs: Array<() => void> = [];
 
+    const handleListenerError = (collName: string, err: any) => {
+      console.warn(`[CollegeStore] Firestore ${collName} listener notice:`, err.code || err.message);
+      if (err.code === "permission-denied") {
+        console.error(
+          `[CollegeStore] Public read access to '${collName}' is blocked by Cloud Firestore rules on project pk-college-74f41. ` +
+          `Publish firestore.rules in Firebase Console to allow public visitors on production to view live CMS updates.`
+        );
+      }
+    };
+
     async function initFirestoreListeners() {
       try {
         // 1. Site Settings listener
@@ -191,7 +201,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.siteSettings, merged);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore siteSettings notice:", err.message));
+        }, (err) => handleListenerError("siteSettings", err));
         unsubs.push(unsubSite);
 
         // 2. Departments listener
@@ -211,7 +221,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.departments, merged);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore departments notice:", err.message));
+        }, (err) => handleListenerError("departments", err));
         unsubs.push(unsubDept);
 
         // 3. Homepage listener
@@ -223,7 +233,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.homepage, merged);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore homepage notice:", err.message));
+        }, (err) => handleListenerError("homepage", err));
         unsubs.push(unsubHome);
 
         // 4. Facilities listener
@@ -250,7 +260,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.facilities, merged);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore facilities notice:", err.message));
+        }, (err) => handleListenerError("facilities", err));
         unsubs.push(unsubFac);
 
         // 5. Announcements listener
@@ -261,7 +271,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.announcements, list);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore announcements notice:", err.message));
+        }, (err) => handleListenerError("announcements", err));
         unsubs.push(unsubAnn);
 
         // 6. Events listener
@@ -272,7 +282,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.events, list);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore events notice:", err.message));
+        }, (err) => handleListenerError("events", err));
         unsubs.push(unsubEvt);
 
         // 7. Gallery listener
@@ -283,7 +293,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.gallery, list);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore gallery notice:", err.message));
+        }, (err) => handleListenerError("gallery", err));
         unsubs.push(unsubGal);
 
         // 8. Leadership listener
@@ -295,7 +305,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.leadership, merged);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore leadership notice:", err.message));
+        }, (err) => handleListenerError("about/leadership", err));
         unsubs.push(unsubLead);
 
         // 9. Placements listener
@@ -307,7 +317,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.placements, merged);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore placements notice:", err.message));
+        }, (err) => handleListenerError("placements/overview", err));
         unsubs.push(unsubPlace);
 
         // 10. Enquiries listener (Admin)
@@ -318,7 +328,7 @@ export function useCollegeStore() {
             setStored(STORAGE_KEYS.enquiries, list);
             notifyAll();
           }
-        }, (err) => console.warn("Firestore enquiries notice:", err.message));
+        }, (err) => handleListenerError("enquiries", err));
         unsubs.push(unsubEnq);
 
       } catch (err) {
@@ -334,6 +344,34 @@ export function useCollegeStore() {
     };
   }, []);
 
+  const syncToFirestore = async (docRef: any, data: any, description: string) => {
+    if (!isFirebaseConfigured) return { success: true, cloudSynced: false };
+    try {
+      await setDoc(docRef, data, { merge: true });
+      return { success: true, cloudSynced: true };
+    } catch (err: any) {
+      console.error(`[CollegeStore] Firestore write failed for ${description}:`, err.code || err.message, err);
+      if (err.code === "permission-denied") {
+        console.error(
+          `[CollegeStore] PERMISSION_DENIED on project pk-college-74f41: Firestore security rules blocked the write. ` +
+          `Please publish firestore.rules in Firebase Console to enable live CMS synchronization.`
+        );
+      }
+      return { success: false, cloudSynced: false, error: err };
+    }
+  };
+
+  const deleteFromFirestore = async (docRef: any, description: string) => {
+    if (!isFirebaseConfigured) return { success: true, cloudSynced: false };
+    try {
+      await deleteDoc(docRef);
+      return { success: true, cloudSynced: true };
+    } catch (err: any) {
+      console.error(`[CollegeStore] Firestore delete failed for ${description}:`, err.code || err.message, err);
+      return { success: false, cloudSynced: false, error: err };
+    }
+  };
+
   // 1. Site Settings Update
   const updateSiteSettings = async (updates: Partial<SiteSettings>) => {
     const updated: SiteSettings = {
@@ -345,13 +383,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.siteSettings, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.siteSettings, "general"), updated, { merge: true });
-      } catch (err) {
-        console.warn("Firestore siteSettings sync notice:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.siteSettings, "general"), updated, "siteSettings/general");
   };
 
   // 2. Department Management (e.g. change Intake 180 -> 100)
@@ -366,16 +398,11 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.departments, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        const target = updated.find((d) => d.code === codeOrSlug || d.slug === codeOrSlug);
-        if (target) {
-          await setDoc(doc(db, "departments", target.slug), target, { merge: true });
-        }
-      } catch (err) {
-        console.warn("Firestore department sync notice:", err);
-      }
+    const target = updated.find((d) => d.code === codeOrSlug || d.slug === codeOrSlug);
+    if (target) {
+      return await syncToFirestore(doc(db, "departments", target.slug), target, `departments/${target.slug}`);
     }
+    return { success: true, cloudSynced: false };
   };
 
   const addDepartment = async (newDept: Department) => {
@@ -384,13 +411,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.departments, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, "departments", newDept.slug), newDept, { merge: true });
-      } catch (err) {
-        console.warn("Firestore add department error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, "departments", newDept.slug), newDept, `departments/${newDept.slug}`);
   };
 
   const deleteDepartment = async (slugOrCode: string) => {
@@ -399,13 +420,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.departments, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await deleteDoc(doc(db, "departments", slugOrCode));
-      } catch (err) {
-        console.warn("Firestore delete department error:", err);
-      }
-    }
+    return await deleteFromFirestore(doc(db, "departments", slugOrCode), `departments/${slugOrCode}`);
   };
 
   const updateDepartments = async (list: Department[]) => {
@@ -421,13 +436,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.homepage, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, "homepage", "content"), updated, { merge: true });
-      } catch (err) {
-        console.warn("Firestore homepage sync notice:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, "homepage", "content"), updated, "homepage/content");
   };
 
   // 4. Leadership & Principal's Message
@@ -437,13 +446,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.leadership, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.about, "leadership"), updated, { merge: true });
-      } catch (err) {
-        console.warn("Firestore leadership sync notice:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.about, "leadership"), updated, "about/leadership");
   };
 
   // 5. Facilities CMS
@@ -459,13 +462,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.facilities, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, "facilities", id), updates, { merge: true });
-      } catch (err) {
-        console.warn("Firestore update facility error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, "facilities", id), updates, `facilities/${id}`);
   };
 
   const addFacility = async (item: Omit<CollegeFacility, "id">) => {
@@ -475,13 +472,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.facilities, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, "facilities", newItem.id), newItem);
-      } catch (err) {
-        console.warn("Firestore add facility error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, "facilities", newItem.id), newItem, `facilities/${newItem.id}`);
   };
 
   const deleteFacility = async (id: string) => {
@@ -490,13 +481,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.facilities, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await deleteDoc(doc(db, "facilities", id));
-      } catch (err) {
-        console.warn("Firestore delete facility error:", err);
-      }
-    }
+    return await deleteFromFirestore(doc(db, "facilities", id), `facilities/${id}`);
   };
 
   // 6. Placements CMS
@@ -506,13 +491,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.placements, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.placements, "overview"), updated, { merge: true });
-      } catch (err) {
-        console.warn("Firestore placements sync notice:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.placements, "overview"), updated, "placements/overview");
   };
 
   const addPlacementYear = async (stat: PlacementYearStat) => {
@@ -617,13 +596,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.announcements, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.announcements, newItem.id), newItem);
-      } catch (err) {
-        console.warn("Firestore add announcement error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.announcements, newItem.id), newItem, `announcements/${newItem.id}`);
   };
 
   const updateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
@@ -632,13 +605,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.announcements, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.announcements, id), updates, { merge: true });
-      } catch (err) {
-        console.warn("Firestore update announcement error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.announcements, id), updates, `announcements/${id}`);
   };
 
   const deleteAnnouncement = async (id: string) => {
@@ -647,13 +614,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.announcements, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await deleteDoc(doc(db, collectionNames.announcements, id));
-      } catch (err) {
-        console.warn("Firestore delete announcement error:", err);
-      }
-    }
+    return await deleteFromFirestore(doc(db, collectionNames.announcements, id), `announcements/${id}`);
   };
 
   // 8. Events CRUD
@@ -664,13 +625,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.events, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.events, newItem.id), newItem);
-      } catch (err) {
-        console.warn("Firestore add event error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.events, newItem.id), newItem, `events/${newItem.id}`);
   };
 
   const updateEvent = async (id: string, updates: Partial<CollegeEvent>) => {
@@ -679,13 +634,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.events, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.events, id), updates, { merge: true });
-      } catch (err) {
-        console.warn("Firestore update event error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.events, id), updates, `events/${id}`);
   };
 
   const deleteEvent = async (id: string) => {
@@ -694,13 +643,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.events, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await deleteDoc(doc(db, collectionNames.events, id));
-      } catch (err) {
-        console.warn("Firestore delete event error:", err);
-      }
-    }
+    return await deleteFromFirestore(doc(db, collectionNames.events, id), `events/${id}`);
   };
 
   // 9. Photo Gallery CRUD
@@ -711,13 +654,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.gallery, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.gallery, String(newItem.id)), newItem);
-      } catch (err) {
-        console.warn("Firestore add gallery error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.gallery, String(newItem.id)), newItem, `gallery/${newItem.id}`);
   };
 
   const updateGalleryItem = async (id: number | string, updates: Partial<GalleryItem>) => {
@@ -726,13 +663,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.gallery, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await setDoc(doc(db, collectionNames.gallery, String(id)), updates, { merge: true });
-      } catch (err) {
-        console.warn("Firestore update gallery error:", err);
-      }
-    }
+    return await syncToFirestore(doc(db, collectionNames.gallery, String(id)), updates, `gallery/${id}`);
   };
 
   const deleteGalleryItem = async (id: number | string) => {
@@ -741,13 +672,7 @@ export function useCollegeStore() {
     setStored(STORAGE_KEYS.gallery, updated);
     notifyAll();
 
-    if (isFirebaseConfigured) {
-      try {
-        await deleteDoc(doc(db, collectionNames.gallery, String(id)));
-      } catch (err) {
-        console.warn("Firestore delete gallery error:", err);
-      }
-    }
+    return await deleteFromFirestore(doc(db, collectionNames.gallery, String(id)), `gallery/${id}`);
   };
 
   // 10. Admission Enquiries
@@ -804,7 +729,7 @@ export function useCollegeStore() {
 
   // 11. Initial Data Seeding Helper
   const seedInitialFirestoreData = async () => {
-    if (!isFirebaseConfigured) return false;
+    if (!isFirebaseConfigured) return { success: false, message: "Firebase is not configured." };
     try {
       // Site settings
       await setDoc(doc(db, collectionNames.siteSettings, "general"), siteSettings, { merge: true });
@@ -835,10 +760,10 @@ export function useCollegeStore() {
       // Placements
       await setDoc(doc(db, collectionNames.placements, "overview"), placements, { merge: true });
 
-      return true;
-    } catch (err) {
+      return { success: true };
+    } catch (err: any) {
       console.error("Failed to seed initial Firestore data:", err);
-      return false;
+      return { success: false, error: err };
     }
   };
 

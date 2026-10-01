@@ -13,7 +13,7 @@ export default defineConfig(({ command }) => ({
       server: { entry: "server" },
     }),
     react(),
-    ...(command === "build" ? [nitro({ defaultPreset: "cloudflare-module" })] : []),
+    ...(command === "build" ? [nitro({ defaultPreset: process.env.VERCEL ? "vercel" : "cloudflare-module" })] : []),
   ],
   server: {
     watch: {

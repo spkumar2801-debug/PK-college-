@@ -1589,18 +1589,19 @@ function AdminPage() {
                   disabled={isSeeding}
                   onClick={async () => {
                     setIsSeeding(true);
-                    const success = await store.seedInitialFirestoreData();
+                    const res: any = await store.seedInitialFirestoreData();
                     setIsSeeding(false);
-                    if (success) {
-                      triggerToast("All initial campus data & departments seeded to Firestore!");
+                    if (res === true || res?.success) {
+                      triggerToast("All campus CMS data synced to Cloud Firestore successfully! Changes are live on production.");
                     } else {
-                      triggerToast("Firestore sync initiated. Please verify Firestore rules and permissions.");
+                      const msg = res?.error?.message ? ` (${res.error.message})` : "";
+                      triggerToast(`Cloud Firestore sync blocked${msg}. Ensure firestore.rules is published in Firebase Console.`);
                     }
                   }}
                   className="bg-[#0b224d] hover:bg-[#102a5c] text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider flex items-center justify-center gap-2 shadow-sm disabled:opacity-60 transition"
                 >
                   <RefreshCw size={13} className={isSeeding ? "animate-spin" : ""} />
-                  <span>{isSeeding ? "Writing to Firestore..." : "Seed Default Data to Firestore"}</span>
+                  <span>{isSeeding ? "Writing to Firestore..." : "Sync All CMS Data to Cloud Firestore"}</span>
                 </button>
               </div>
 
