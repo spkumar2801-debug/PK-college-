@@ -248,83 +248,107 @@ export function useCollegeStore() {
 
         // 4. Facilities listener - Cloud Firestore is authoritative
         const unsubFac = onSnapshot(collection(db, "facilities"), (snap) => {
-          if (!snap.empty && isMounted) {
-            const remoteFacs = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeFacility[];
-            const merged = defaultFacilities.map((initF) => {
-              const remote = remoteFacs.find((r) => r.id === initF.id);
-              if (!remote) return initF;
-              return {
-                ...initF,
-                ...remote,
-                image: remote.image || initF.image,
-                keyFeatures: Array.isArray(remote.keyFeatures) && remote.keyFeatures.length > 0 ? remote.keyFeatures : initF.keyFeatures,
-              };
-            });
-            remoteFacs.forEach((r) => {
-              if (!merged.some((m) => m.id === r.id)) {
-                merged.push(r);
-              }
-            });
-            setFacilitiesState(merged);
-            setStored(STORAGE_KEYS.facilities, merged);
-            notifyAll();
+          try {
+            if (!snap.empty && isMounted) {
+              const remoteFacs = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeFacility[];
+              const merged = initialFacilities.map((initF) => {
+                const remote = remoteFacs.find((r) => r.id === initF.id);
+                if (!remote) return initF;
+                return {
+                  ...initF,
+                  ...remote,
+                  image: remote.image || initF.image,
+                  keyFeatures: Array.isArray(remote.keyFeatures) && remote.keyFeatures.length > 0 ? remote.keyFeatures : initF.keyFeatures,
+                };
+              });
+              remoteFacs.forEach((r) => {
+                if (!merged.some((m) => m.id === r.id)) {
+                  merged.push(r);
+                }
+              });
+              setFacilitiesState(merged);
+              setStored(STORAGE_KEYS.facilities, merged);
+              notifyAll();
+            }
+          } catch (err) {
+            handleListenerError("facilities", err);
           }
         }, (err) => handleListenerError("facilities", err));
         unsubs.push(unsubFac);
 
         // 5. Announcements listener
         const unsubAnn = onSnapshot(collection(db, collectionNames.announcements), (snap) => {
-          if (!snap.empty && isMounted) {
-            const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as Announcement[];
-            setAnnouncementsState(list);
-            setStored(STORAGE_KEYS.announcements, list);
-            notifyAll();
+          try {
+            if (!snap.empty && isMounted) {
+              const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as Announcement[];
+              setAnnouncementsState(list);
+              setStored(STORAGE_KEYS.announcements, list);
+              notifyAll();
+            }
+          } catch (err) {
+            handleListenerError("announcements", err);
           }
         }, (err) => handleListenerError("announcements", err));
         unsubs.push(unsubAnn);
 
         // 6. Events listener
         const unsubEvt = onSnapshot(collection(db, collectionNames.events), (snap) => {
-          if (!snap.empty && isMounted) {
-            const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeEvent[];
-            setEventsState(list);
-            setStored(STORAGE_KEYS.events, list);
-            notifyAll();
+          try {
+            if (!snap.empty && isMounted) {
+              const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeEvent[];
+              setEventsState(list);
+              setStored(STORAGE_KEYS.events, list);
+              notifyAll();
+            }
+          } catch (err) {
+            handleListenerError("events", err);
           }
         }, (err) => handleListenerError("events", err));
         unsubs.push(unsubEvt);
 
         // 7. Gallery listener
         const unsubGal = onSnapshot(collection(db, collectionNames.gallery), (snap) => {
-          if (!snap.empty && isMounted) {
-            const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as GalleryItem[];
-            setGalleryState(list);
-            setStored(STORAGE_KEYS.gallery, list);
-            notifyAll();
+          try {
+            if (!snap.empty && isMounted) {
+              const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as unknown as GalleryItem[];
+              setGalleryState(list);
+              setStored(STORAGE_KEYS.gallery, list);
+              notifyAll();
+            }
+          } catch (err) {
+            handleListenerError("gallery", err);
           }
         }, (err) => handleListenerError("gallery", err));
         unsubs.push(unsubGal);
 
         // 8. Leadership listener
         const unsubLead = onSnapshot(doc(db, collectionNames.about, "leadership"), (snap) => {
-          if (snap.exists() && isMounted) {
-            const data = snap.data() as Partial<Leadership>;
-            const merged = { ...initialLeadership, ...data };
-            setLeadershipState(merged);
-            setStored(STORAGE_KEYS.leadership, merged);
-            notifyAll();
+          try {
+            if (snap.exists() && isMounted) {
+              const data = snap.data() as Partial<Leadership>;
+              const merged = { ...initialLeadership, ...data };
+              setLeadershipState(merged);
+              setStored(STORAGE_KEYS.leadership, merged);
+              notifyAll();
+            }
+          } catch (err) {
+            handleListenerError("about/leadership", err);
           }
         }, (err) => handleListenerError("about/leadership", err));
         unsubs.push(unsubLead);
 
         // 9. Placements listener
         const unsubPlace = onSnapshot(doc(db, collectionNames.placements, "overview"), (snap) => {
-          if (snap.exists() && isMounted) {
-            const data = snap.data() as Partial<PlacementData>;
-            const merged = { ...initialPlacements, ...data };
-            setPlacementsState(merged);
-            setStored(STORAGE_KEYS.placements, merged);
-            notifyAll();
+          try {
+            if (snap.exists() && isMounted) {
+              const data = snap.data() as Partial<PlacementData>;
+              const merged = { ...initialPlacements, ...data };
+              setPlacementsState(merged);
+              setStored(STORAGE_KEYS.placements, merged);
+              notifyAll();
+            }
+          } catch (err) {
+            handleListenerError("placements/overview", err);
           }
         }, (err) => handleListenerError("placements/overview", err));
         unsubs.push(unsubPlace);

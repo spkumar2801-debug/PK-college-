@@ -3,6 +3,7 @@ import { Link, useRouterState } from "@tanstack/react-router";
 import { ChevronRight, Home as HomeIcon } from "lucide-react";
 import { CollegeHeader } from "@/components/site/CollegeHeader";
 import { CollegeFooter } from "@/components/site/CollegeFooter";
+import { RouteTransition } from "@/components/site/RouteTransition";
 import { useCollegeStore } from "@/lib/college-store";
 import { useScrollReveal } from "@/hooks/useScrollReveal";
 
@@ -29,7 +30,11 @@ export function PublicLayout({ children }: { children: ReactNode }) {
   return (
     <div className="min-h-screen flex flex-col bg-[#f8fafc] text-[#0f172a] font-sans">
       <CollegeHeader />
-      <main className="flex-1 w-full">{children}</main>
+      <main className="flex-1 w-full">
+        <RouteTransition pathname={pathname}>
+          {children}
+        </RouteTransition>
+      </main>
       <CollegeFooter />
     </div>
   );
