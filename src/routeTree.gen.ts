@@ -16,6 +16,7 @@ import { Route as AchievementsRouteImport } from './routes/achievements'
 import { Route as AdminRouteImport } from './routes/admin'
 import { Route as AdmissionsRouteImport } from './routes/admissions'
 import { Route as AnnouncementsRouteImport } from './routes/announcements'
+import { Route as CampusLifeRouteImport } from './routes/campus-life'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DepartmentsRouteImport } from './routes/departments'
 import { Route as EventsRouteImport } from './routes/events'
@@ -58,6 +59,11 @@ const AdmissionsRoute = AdmissionsRouteImport.update({
 const AnnouncementsRoute = AnnouncementsRouteImport.update({
   id: '/announcements',
   path: '/announcements',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const CampusLifeRoute = CampusLifeRouteImport.update({
+  id: '/campus-life',
+  path: '/campus-life',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ContactRoute = ContactRouteImport.update({
@@ -109,6 +115,7 @@ export interface FileRoutesByFullPath {
   '/admin': typeof AdminRoute
   '/admissions': typeof AdmissionsRoute
   '/announcements': typeof AnnouncementsRoute
+  '/campus-life': typeof CampusLifeRoute
   '/contact': typeof ContactRoute
   '/departments': typeof DepartmentsRoute
   '/events': typeof EventsRoute
@@ -126,6 +133,7 @@ export interface FileRoutesByTo {
   '/admin': typeof AdminRoute
   '/admissions': typeof AdmissionsRoute
   '/announcements': typeof AnnouncementsRoute
+  '/campus-life': typeof CampusLifeRoute
   '/contact': typeof ContactRoute
   '/departments': typeof DepartmentsRoute
   '/events': typeof EventsRoute
@@ -144,6 +152,7 @@ export interface FileRoutesById {
   '/admin': typeof AdminRoute
   '/admissions': typeof AdmissionsRoute
   '/announcements': typeof AnnouncementsRoute
+  '/campus-life': typeof CampusLifeRoute
   '/contact': typeof ContactRoute
   '/departments': typeof DepartmentsRoute
   '/events': typeof EventsRoute
@@ -163,6 +172,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admissions'
     | '/announcements'
+    | '/campus-life'
     | '/contact'
     | '/departments'
     | '/events'
@@ -180,6 +190,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admissions'
     | '/announcements'
+    | '/campus-life'
     | '/contact'
     | '/departments'
     | '/events'
@@ -197,6 +208,7 @@ export interface FileRouteTypes {
     | '/admin'
     | '/admissions'
     | '/announcements'
+    | '/campus-life'
     | '/contact'
     | '/departments'
     | '/events'
@@ -215,6 +227,7 @@ export interface RootRouteChildren {
   AdminRoute: typeof AdminRoute
   AdmissionsRoute: typeof AdmissionsRoute
   AnnouncementsRoute: typeof AnnouncementsRoute
+  CampusLifeRoute: typeof CampusLifeRoute
   ContactRoute: typeof ContactRoute
   DepartmentsRoute: typeof DepartmentsRoute
   EventsRoute: typeof EventsRoute
@@ -274,6 +287,13 @@ declare module '@tanstack/react-router' {
       path: '/announcements'
       fullPath: '/announcements'
       preLoaderRoute: typeof AnnouncementsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/campus-life': {
+      id: '/campus-life'
+      path: '/campus-life'
+      fullPath: '/campus-life'
+      preLoaderRoute: typeof CampusLifeRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/contact': {
@@ -343,6 +363,7 @@ const rootRouteChildren: RootRouteChildren = {
   AdminRoute: AdminRoute,
   AdmissionsRoute: AdmissionsRoute,
   AnnouncementsRoute: AnnouncementsRoute,
+  CampusLifeRoute: CampusLifeRoute,
   ContactRoute: ContactRoute,
   DepartmentsRoute: DepartmentsRoute,
   EventsRoute: EventsRoute,

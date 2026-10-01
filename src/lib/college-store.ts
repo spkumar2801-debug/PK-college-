@@ -209,8 +209,26 @@ export function useCollegeStore() {
         const unsubDept = onSnapshot(collection(db, "departments"), (snap) => {
           if (!snap.empty && isMounted) {
             const remoteDepts = snap.docs.map((d) => d.data() as Department);
-            setDepartmentsState(remoteDepts);
-            setStored(STORAGE_KEYS.departments, remoteDepts);
+            const merged = initialDepartments.map((initD) => {
+              const remote = remoteDepts.find((r) => r.slug === initD.slug);
+              if (!remote) return initD;
+              return {
+                ...initD,
+                ...remote,
+                image: remote.image || initD.image,
+                laboratories: Array.isArray(remote.laboratories) && remote.laboratories.length > 0 ? remote.laboratories : initD.laboratories,
+                keyDomains: Array.isArray(remote.keyDomains) && remote.keyDomains.length > 0 ? remote.keyDomains : initD.keyDomains,
+                careerProspects: Array.isArray(remote.careerProspects) && remote.careerProspects.length > 0 ? remote.careerProspects : initD.careerProspects,
+                mission: Array.isArray(remote.mission) && remote.mission.length > 0 ? remote.mission : initD.mission,
+              };
+            });
+            remoteDepts.forEach((r) => {
+              if (!merged.some((m) => m.slug === r.slug)) {
+                merged.push(r);
+              }
+            });
+            setDepartmentsState(merged);
+            setStored(STORAGE_KEYS.departments, merged);
             notifyAll();
           }
         }, (err) => handleListenerError("departments", err));
@@ -232,8 +250,23 @@ export function useCollegeStore() {
         const unsubFac = onSnapshot(collection(db, "facilities"), (snap) => {
           if (!snap.empty && isMounted) {
             const remoteFacs = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeFacility[];
-            setFacilitiesState(remoteFacs);
-            setStored(STORAGE_KEYS.facilities, remoteFacs);
+            const merged = defaultFacilities.map((initF) => {
+              const remote = remoteFacs.find((r) => r.id === initF.id);
+              if (!remote) return initF;
+              return {
+                ...initF,
+                ...remote,
+                image: remote.image || initF.image,
+                keyFeatures: Array.isArray(remote.keyFeatures) && remote.keyFeatures.length > 0 ? remote.keyFeatures : initF.keyFeatures,
+              };
+            });
+            remoteFacs.forEach((r) => {
+              if (!merged.some((m) => m.id === r.id)) {
+                merged.push(r);
+              }
+            });
+            setFacilitiesState(merged);
+            setStored(STORAGE_KEYS.facilities, merged);
             notifyAll();
           }
         }, (err) => handleListenerError("facilities", err));
