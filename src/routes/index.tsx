@@ -1126,26 +1126,26 @@ function HomePage() {
       </section>
 
       {/* 9. Dual Section: Notices & Circulars + Upcoming Campus Events */}
-      <section className="py-12 sm:py-16 bg-white border-b border-slate-200">
-        <div className="college-container">
-          <div className="notice-events-grid grid grid-cols-1 lg:grid-cols-12 gap-8">
+      <section className="py-12 sm:py-16 bg-white border-b border-slate-200 w-full overflow-hidden">
+        <div className="college-container w-full max-w-full">
+          <div className="notice-events-grid grid grid-cols-1 lg:grid-cols-12 gap-6 sm:gap-8 w-full max-w-full min-w-0">
             {/* Announcements Panel */}
-            <div className="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-lg p-5 sm:p-6 shadow-xs">
-              <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="w-2.5 h-2.5 rounded-full bg-[#991b1b] animate-ping" />
-                  <h3 className="text-base font-extrabold text-[#0b224d]">Notices & Circulars</h3>
+            <div className="lg:col-span-7 bg-slate-50 border border-slate-200 rounded-lg p-3.5 sm:p-5 md:p-6 shadow-xs w-full max-w-full min-w-0 box-border">
+              <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="w-2.5 h-2.5 rounded-full bg-[#991b1b] animate-ping shrink-0" />
+                  <h3 className="text-sm sm:text-base font-extrabold text-[#0b224d] truncate">Notices &amp; Circulars</h3>
                 </div>
                 <Link
                   to="/announcements"
-                  className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1"
+                  className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1 shrink-0 whitespace-nowrap"
                 >
                   <span>All Notices</span>
                   <ChevronRight size={14} />
                 </Link>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 w-full min-w-0">
                 {announcements.slice(0, 4).map((ann, idx) => {
                   const parts = ann.date.split("-");
                   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -1157,28 +1157,40 @@ function HomePage() {
                       key={ann.id}
                       data-reveal="fade-up"
                       data-reveal-delay={String(idx + 1)}
-                      className="p-3 bg-white border border-slate-200 rounded flex gap-3 hover:border-slate-300 transition"
+                      className="p-3 bg-white border border-slate-200 rounded flex items-start gap-2.5 sm:gap-3 hover:border-slate-300 transition w-full max-w-full min-w-0 box-border"
+                      style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
                     >
-                      <div className="text-center bg-[#0b224d] text-white px-2.5 py-1.5 rounded flex flex-col justify-center shrink-0 w-12">
-                        <span className="text-xs font-bold">{day}</span>
-                        <span className="text-[10px] uppercase text-amber-300 font-semibold">{month}</span>
+                      <div className="text-center bg-[#0b224d] text-white px-2 py-1.5 rounded flex flex-col justify-center shrink-0 w-11 sm:w-12 box-border">
+                        <span className="text-xs font-bold leading-none">{day}</span>
+                        <span className="text-[10px] uppercase text-amber-300 font-semibold mt-0.5 leading-none">{month}</span>
                       </div>
 
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 mb-1">
-                          <span className="text-[10px] font-bold text-[#b45309] bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200">
+                      <div className="flex-1 min-w-0 w-full" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
+                        <div className="flex flex-wrap items-center gap-1.5 mb-1 min-w-0">
+                          <span className="text-[10px] font-bold text-[#b45309] bg-amber-50 px-1.5 py-0.5 rounded border border-amber-200 inline-block break-normal">
                             {ann.category}
                           </span>
                           {ann.isUrgent && (
-                            <span className="text-[10px] font-extrabold uppercase bg-red-100 text-red-700 px-1.5 py-0.5 rounded">
+                            <span className="text-[10px] font-extrabold uppercase bg-red-100 text-red-700 px-1.5 py-0.5 rounded inline-block break-normal">
                               Important
                             </span>
                           )}
                         </div>
-                        <Link to="/announcements" className="text-xs font-bold text-[#0b224d] hover:underline block truncate">
+                        <Link
+                          to="/announcements"
+                          className="text-xs font-bold text-[#0b224d] hover:underline block leading-snug"
+                          style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                        >
                           {ann.title}
                         </Link>
-                        <p className="text-[11px] text-slate-500 line-clamp-1 mt-0.5">{ann.summary}</p>
+                        {ann.summary && (
+                          <p
+                            className="text-[11px] text-slate-500 mt-1 leading-relaxed"
+                            style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                          >
+                            {ann.summary}
+                          </p>
+                        )}
                       </div>
                     </div>
                   );
@@ -1187,44 +1199,61 @@ function HomePage() {
             </div>
 
             {/* Events Panel */}
-            <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-lg p-5 sm:p-6 shadow-xs">
-              <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4">
-                <div className="flex items-center gap-2">
-                  <Calendar size={18} className="text-[#0b224d]" />
-                  <h3 className="text-base font-extrabold text-[#0b224d]">Upcoming Events</h3>
+            <div className="lg:col-span-5 bg-slate-50 border border-slate-200 rounded-lg p-3.5 sm:p-5 md:p-6 shadow-xs w-full max-w-full min-w-0 box-border">
+              <div data-reveal="fade-up" className="flex items-center justify-between border-b border-slate-200 pb-3 mb-4 gap-2 min-w-0">
+                <div className="flex items-center gap-2 min-w-0">
+                  <Calendar size={18} className="text-[#0b224d] shrink-0" />
+                  <h3 className="text-sm sm:text-base font-extrabold text-[#0b224d] truncate">Upcoming Events</h3>
                 </div>
                 <Link
                   to="/events"
-                  className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1"
+                  className="text-xs font-bold text-[#0b224d] hover:text-[#b45309] flex items-center gap-1 shrink-0 whitespace-nowrap"
                 >
                   <span>All Events</span>
                   <ChevronRight size={14} />
                 </Link>
               </div>
 
-              <div className="space-y-3">
+              <div className="space-y-3 w-full min-w-0">
                 {events.slice(0, 3).map((evt, idx) => (
                   <div
                     key={evt.id}
                     data-reveal="fade-up"
                     data-reveal-delay={String(idx + 1)}
-                    className="p-3 bg-white border border-slate-200 rounded flex gap-3 hover:border-slate-300 transition"
+                    className="p-3 bg-white border border-slate-200 rounded flex flex-row items-start gap-2.5 sm:gap-3 hover:border-slate-300 transition w-full max-w-full min-w-0 box-border"
+                    style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
                   >
-                    <img
-                      src={evt.image}
-                      alt={evt.title}
-                      className="w-16 h-16 object-cover rounded shrink-0 border border-slate-200 aspect-square"
-                      loading="lazy"
-                    />
-                    <div className="flex-1 min-w-0">
-                      <span className="text-[10px] font-bold text-[#b45309] block mb-0.5">
+                    {/* Responsive Event Image Container */}
+                    <div className="w-14 h-14 xs:w-16 xs:h-16 sm:w-18 sm:h-18 md:w-16 md:h-16 shrink-0 rounded overflow-hidden border border-slate-200 bg-slate-100 relative aspect-square box-border">
+                      <img
+                        src={evt.image}
+                        alt={evt.title}
+                        className="w-full h-full object-cover block"
+                        loading="lazy"
+                      />
+                    </div>
+
+                    <div className="flex-1 min-w-0 w-full" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
+                      <span
+                        className="text-[10px] font-bold text-[#b45309] block mb-1 leading-snug"
+                        style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                      >
                         {evt.category} · {evt.date}
                       </span>
-                      <h4 className="text-xs font-bold text-[#0b224d] truncate mb-1">
+                      <h4
+                        className="text-xs font-bold text-[#0b224d] mb-1 leading-snug"
+                        style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                      >
                         {evt.title}
                       </h4>
-                      <p className="text-[11px] text-slate-500 truncate flex items-center gap-1">
-                        <MapPin size={11} /> {evt.venue}
+                      <p
+                        className="text-[11px] text-slate-500 flex items-start gap-1 leading-snug mt-0.5"
+                        style={{ overflowWrap: "anywhere", wordBreak: "normal" }}
+                      >
+                        <MapPin size={11} className="shrink-0 mt-0.5 text-slate-400" />
+                        <span className="min-w-0" style={{ overflowWrap: "anywhere", wordBreak: "normal" }}>
+                          {evt.venue}
+                        </span>
                       </p>
                     </div>
                   </div>

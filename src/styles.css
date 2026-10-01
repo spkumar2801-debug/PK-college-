@@ -660,6 +660,10 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 28px;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
 }
 
 .notice-panel,
