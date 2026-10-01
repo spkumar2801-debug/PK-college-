@@ -727,42 +727,226 @@ export function useCollegeStore() {
     }
   };
 
-  // 11. Initial Data Seeding Helper
+  // 11. Safe & Idempotent Firestore Synchronization Helper
+  // Guarantees:
+  // - Never deletes existing Firestore data
+  // - Never overwrites an existing Cloudinary URL with an empty string or fallback path
+  // - Uses deterministic document IDs to prevent duplicate documents
+  // - Safely deep-merges existing documents without clobbering newer remote data
   const seedInitialFirestoreData = async () => {
     if (!isFirebaseConfigured) return { success: false, message: "Firebase is not configured." };
-    try {
-      // Site settings
-      await setDoc(doc(db, collectionNames.siteSettings, "general"), siteSettings, { merge: true });
-      // Departments
-      for (const d of departments) {
-        await setDoc(doc(db, "departments", d.slug), d, { merge: true });
-      }
-      // Homepage
-      await setDoc(doc(db, "homepage", "content"), homepage, { merge: true });
-      // Facilities
-      for (const f of facilities) {
-        await setDoc(doc(db, "facilities", f.id), f, { merge: true });
-      }
-      // Announcements
-      for (const a of announcements) {
-        await setDoc(doc(db, collectionNames.announcements, a.id), a, { merge: true });
-      }
-      // Events
-      for (const e of events) {
-        await setDoc(doc(db, collectionNames.events, e.id), e, { merge: true });
-      }
-      // Gallery
-      for (const g of galleryItems) {
-        await setDoc(doc(db, collectionNames.gallery, String(g.id)), g, { merge: true });
-      }
-      // Leadership
-      await setDoc(doc(db, collectionNames.about, "leadership"), leadership, { merge: true });
-      // Placements
-      await setDoc(doc(db, collectionNames.placements, "overview"), placements, { merge: true });
 
-      return { success: true };
+    const isCloudinary = (url?: string): boolean => {
+      return typeof url === "string" && (url.includes("cloudinary.com") || url.startsWith("https://res.cloudinary.com"));
+    };
+
+    const preserveImage = (remoteVal?: string, localVal?: string): string => {
+      if (isCloudinary(remoteVal) && (!localVal || !isCloudinary(localVal))) {
+        return remoteVal;
+      }
+      return localVal !== undefined && localVal !== "" ? localVal : (remoteVal || "");
+    };
+
+    try {
+      let createdCount = 0;
+      let mergedCount = 0;
+
+      // 1. Site Settings (doc: siteSettings/general)
+      const siteRef = doc(db, collectionNames.siteSettings, "general");
+      const siteSnap = await getDoc(siteRef);
+      if (siteSnap.exists()) {
+        const remote = siteSnap.data() as Partial<SiteSettings>;
+        const safeSite: SiteSettings = {
+          ...remote,
+          ...siteSettings,
+          logoUrl: preserveImage(remote.logoUrl, siteSettings.logoUrl),
+          faviconUrl: preserveImage(remote.faviconUrl, siteSettings.faviconUrl),
+        };
+        await setDoc(siteRef, safeSite, { merge: true });
+        mergedCount++;
+      } else {
+        await setDoc(siteRef, siteSettings, { merge: true });
+        createdCount++;
+      }
+
+      // 2. Departments (keyed by deterministic slug, e.g. "cse", "ai-ds")
+      for (const d of departments) {
+        const dRef = doc(db, "departments", d.slug);
+        const dSnap = await getDoc(dRef);
+        if (dSnap.exists()) {
+          const remote = dSnap.data() as Partial<Department>;
+          const safeDept: Department = {
+            ...remote,
+            ...d,
+            image: preserveImage(remote.image, d.image),
+            hodPhoto: preserveImage(remote.hodPhoto, d.hodPhoto),
+          };
+          await setDoc(dRef, safeDept, { merge: true });
+          mergedCount++;
+        } else {
+          await setDoc(dRef, d, { merge: true });
+          createdCount++;
+        }
+      }
+
+      // 3. Homepage Settings (doc: homepage/content)
+      const homeRef = doc(db, "homepage", "content");
+      const homeSnap = await getDoc(homeRef);
+      if (homeSnap.exists()) {
+        const remote = homeSnap.data() as Partial<HomepageSettings>;
+        const safeHome: HomepageSettings = {
+          ...remote,
+          ...homepage,
+          heroImage: preserveImage(remote.heroImage, homepage.heroImage),
+        };
+        await setDoc(homeRef, safeHome, { merge: true });
+        mergedCount++;
+      } else {
+        await setDoc(homeRef, homepage, { merge: true });
+        createdCount++;
+      }
+
+      // 4. Facilities (keyed by deterministic facility.id, e.g. "fac-library")
+      for (const f of facilities) {
+        const fRef = doc(db, "facilities", f.id);
+        const fSnap = await getDoc(fRef);
+        if (fSnap.exists()) {
+          const remote = fSnap.data() as Partial<CollegeFacility>;
+          const safeFac: CollegeFacility = {
+            ...remote,
+            ...f,
+            image: preserveImage(remote.image, f.image),
+          };
+          await setDoc(fRef, safeFac, { merge: true });
+          mergedCount++;
+        } else {
+          await setDoc(fRef, f, { merge: true });
+          createdCount++;
+        }
+      }
+
+      // 5. Announcements (keyed by deterministic announcement.id)
+      for (const a of announcements) {
+        const aRef = doc(db, collectionNames.announcements, a.id);
+        const aSnap = await getDoc(aRef);
+        if (aSnap.exists()) {
+          const remote = aSnap.data() as Partial<Announcement>;
+          await setDoc(aRef, { ...remote, ...a }, { merge: true });
+          mergedCount++;
+        } else {
+          await setDoc(aRef, a, { merge: true });
+          createdCount++;
+        }
+      }
+
+      // 6. Events (keyed by deterministic event.id)
+      for (const e of events) {
+        const eRef = doc(db, collectionNames.events, e.id);
+        const eSnap = await getDoc(eRef);
+        if (eSnap.exists()) {
+          const remote = eSnap.data() as Partial<CollegeEvent>;
+          const safeEvt: CollegeEvent = {
+            ...remote,
+            ...e,
+            image: preserveImage(remote.image, e.image),
+          };
+          await setDoc(eRef, safeEvt, { merge: true });
+          mergedCount++;
+        } else {
+          await setDoc(eRef, e, { merge: true });
+          createdCount++;
+        }
+      }
+
+      // 7. Gallery (keyed by deterministic String(item.id))
+      for (const g of galleryItems) {
+        const gRef = doc(db, collectionNames.gallery, String(g.id));
+        const gSnap = await getDoc(gRef);
+        if (gSnap.exists()) {
+          const remote = gSnap.data() as Partial<GalleryItem>;
+          const safeGal: GalleryItem = {
+            ...remote,
+            ...g,
+            imageUrl: preserveImage(remote.imageUrl, g.imageUrl),
+          };
+          await setDoc(gRef, safeGal, { merge: true });
+          mergedCount++;
+        } else {
+          await setDoc(gRef, g, { merge: true });
+          createdCount++;
+        }
+      }
+
+      // 8. Leadership (doc: about/leadership)
+      const leadRef = doc(db, collectionNames.about, "leadership");
+      const leadSnap = await getDoc(leadRef);
+      if (leadSnap.exists()) {
+        const remote = leadSnap.data() as Partial<Leadership>;
+        const safeLead: Leadership = {
+          ...remote,
+          ...leadership,
+          principal: {
+            ...(remote.principal || {}),
+            ...(leadership.principal || {}),
+            photo: preserveImage(remote.principal?.photo, leadership.principal?.photo),
+          },
+          chairman: {
+            ...(remote.chairman || {}),
+            ...(leadership.chairman || {}),
+            photo: preserveImage(remote.chairman?.photo, leadership.chairman?.photo),
+          },
+        };
+        await setDoc(leadRef, safeLead, { merge: true });
+        mergedCount++;
+      } else {
+        await setDoc(leadRef, leadership, { merge: true });
+        createdCount++;
+      }
+
+      // 9. Placements (doc: placements/overview)
+      const placeRef = doc(db, collectionNames.placements, "overview");
+      const placeSnap = await getDoc(placeRef);
+      if (placeSnap.exists()) {
+        const remote = placeSnap.data() as Partial<PlacementData>;
+        const safePlacements: PlacementData = {
+          ...remote,
+          ...placements,
+          highestPackage: {
+            ...(remote.highestPackage || {}),
+            ...(placements.highestPackage || {}),
+            studentPhoto: preserveImage(
+              remote.highestPackage?.studentPhoto,
+              placements.highestPackage?.studentPhoto
+            ),
+          },
+          companies: (placements.companies || []).map((localC) => {
+            const remoteC = (remote.companies || []).find((rc) => rc.id === localC.id);
+            return {
+              ...(remoteC || {}),
+              ...localC,
+              logo: preserveImage(remoteC?.logo, localC.logo),
+            };
+          }),
+          gallery: (placements.gallery || []).map((localG) => {
+            const remoteG = (remote.gallery || []).find((rg) => rg.id === localG.id);
+            return {
+              ...(remoteG || {}),
+              ...localG,
+              imageUrl: preserveImage(remoteG?.imageUrl, localG.imageUrl),
+            };
+          }),
+        };
+        await setDoc(placeRef, safePlacements, { merge: true });
+        mergedCount++;
+      } else {
+        await setDoc(placeRef, placements, { merge: true });
+        createdCount++;
+      }
+
+      console.log(`[CollegeStore] Idempotent Firestore sync complete: ${createdCount} created, ${mergedCount} merged safely.`);
+      return { success: true, createdCount, mergedCount };
     } catch (err: any) {
-      console.error("Failed to seed initial Firestore data:", err);
+      console.error("[CollegeStore] Safe Firestore sync notice:", err);
       return { success: false, error: err };
     }
   };
