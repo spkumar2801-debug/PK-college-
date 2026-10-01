@@ -1,4 +1,4 @@
-import type { SVGProps } from "react";
+import { useState, useEffect, type SVGProps } from "react";
 import { useCollegeStore } from "@/lib/college-store";
 
 interface CollegeCrestProps extends SVGProps<SVGSVGElement> {
@@ -20,16 +20,33 @@ export function CollegeCrest({
   ...props
 }: CollegeCrestProps) {
   const store = useCollegeStore();
-  const logoUrl = customLogoUrl || store.siteSettings?.logoUrl;
+  const rawLogoUrl = customLogoUrl || store.siteSettings?.logoUrl;
   const isDarkBg = variant === "dark";
 
-  if (logoUrl) {
+  // Filter out empty strings, whitespace, or known 1x1 test dummy pixels
+  const isInvalidOrTestPixel =
+    !rawLogoUrl ||
+    typeof rawLogoUrl !== "string" ||
+    rawLogoUrl.trim() === "" ||
+    rawLogoUrl.includes("tbbdxnp6wf0nwfw1apz1") ||
+    rawLogoUrl.includes("jrhh46koy2my1qlxwdlx") ||
+    rawLogoUrl.includes("r97d5qtyjgrgstpxjdkd");
+
+  const [imageError, setImageError] = useState(false);
+
+  // Reset error state if logoUrl changes
+  useEffect(() => {
+    setImageError(false);
+  }, [rawLogoUrl]);
+
+  if (!isInvalidOrTestPixel && !imageError) {
     return (
       <img
-        src={logoUrl}
+        src={rawLogoUrl}
         alt={store.siteSettings?.name || "PK College of Engineering & Technology Logo"}
         className={imgClassName || className}
         style={{ objectFit: "contain" }}
+        onError={() => setImageError(true)}
       />
     );
   }

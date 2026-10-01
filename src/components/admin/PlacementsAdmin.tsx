@@ -51,7 +51,7 @@ interface PlacementsAdminProps {
     updatePlacementAchievement?: (id: string, updates: Partial<StudentPlacementAchievement>) => Promise<void>;
     deletePlacementAchievement?: (id: string) => Promise<void>;
   };
-  triggerToast: (msg: string) => void;
+  triggerToast: (msg: string | { text: string; type?: "success" | "error" }) => void;
 }
 
 type SubTab = "overview" | "statistics" | "highestPackage" | "yearWise" | "achievements" | "companies" | "gallery";

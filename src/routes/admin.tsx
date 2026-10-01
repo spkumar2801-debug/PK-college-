@@ -107,7 +107,7 @@ interface DepartmentEditorFormProps {
   onUploadImage: (slug: string) => Promise<void>;
   onDeptSelect: (e: ChangeEvent<HTMLInputElement>) => void;
   deptUploadError?: string;
-  triggerToast: (msg: string) => void;
+  triggerToast: (msg: string | { text: string; type?: "success" | "error" }) => void;
 }
 
 function DepartmentEditorForm({
@@ -238,10 +238,10 @@ function DepartmentEditorForm({
         },
       });
       setIsDirty(false);
-      triggerToast(`Saved ${shortTitle}! Approved Intake is now ${parsedIntake} seats.`);
-    } catch (err) {
+      triggerToast({ text: `Saved ${shortTitle}! Approved Intake is now ${parsedIntake} seats.`, type: "success" });
+    } catch (err: any) {
       console.error(err);
-      triggerToast("Failed to save department changes.");
+      triggerToast({ text: `Firestore save failed: ${err.message || String(err)}`, type: "error" });
     } finally {
       setIsSaving(false);
     }
@@ -706,7 +706,7 @@ function AdminPage() {
   const [adminDrawerOpen, setAdminDrawerOpen] = useState(false);
   const [authError, setAuthError] = useState("");
   const [authBusy, setAuthBusy] = useState(false);
-  const [toastMessage, setToastMessage] = useState<string | null>(null);
+  const [toast, setToast] = useState<{ text: string; type: "success" | "error" } | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
 
   // Monitor Firebase Auth State
@@ -780,9 +780,32 @@ function AdminPage() {
   const [heroUploadError, setHeroUploadError] = useState("");
   const [deptUploadError, setDeptUploadError] = useState("");
 
-  function triggerToast(msg: string) {
-    setToastMessage(msg);
-    setTimeout(() => setToastMessage(null), 3500);
+  function triggerToast(msg: string | { text: string; type?: "success" | "error" }) {
+    if (typeof msg === "string") {
+      setToast({ text: msg, type: "success" });
+    } else {
+      setToast({ text: msg.text, type: msg.type || "success" });
+    }
+    setTimeout(() => setToast(null), 4500);
+  }
+
+  async function handleStoreAction<T extends { success?: boolean; error?: any }>(
+    actionPromise: Promise<T>,
+    successMessage: string
+  ): Promise<T> {
+    try {
+      const res = await actionPromise;
+      if (res && res.success === false) {
+        const errorMsg = res.error?.message || String(res.error) || "Permission denied or write failed";
+        triggerToast({ text: `Firestore save failed: ${errorMsg}`, type: "error" });
+      } else {
+        triggerToast({ text: successMessage, type: "success" });
+      }
+      return res;
+    } catch (err: any) {
+      triggerToast({ text: `Firestore save failed: ${err.message || String(err)}`, type: "error" });
+      throw err;
+    }
   }
 
   // Handle Login via Firebase Authentication
@@ -890,7 +913,10 @@ function AdminPage() {
     setBrandingError("");
     try {
       const res = await uploadMediaFile(pendingLogoFile, "branding", { allowSvg: true, maxSizeMB: 5 });
-      await store.updateSiteSettings({ logoUrl: res.url });
+      const writeRes = await store.updateSiteSettings({ logoUrl: res.url });
+      if (writeRes && writeRes.success === false) {
+        throw new Error(writeRes.error?.message || "Firestore save failed");
+      }
       setPendingLogoFile(null);
       setPendingLogoPreview(null);
       setBrandingError("");
@@ -899,7 +925,7 @@ function AdminPage() {
       console.error("Logo upload error:", err);
       const msg = err?.message || "Failed to upload and save logo.";
       setBrandingError(msg);
-      triggerToast(msg);
+      triggerToast({ text: `Firestore save failed: ${msg}`, type: "error" });
     } finally {
       setIsUploading(false);
     }
@@ -911,7 +937,7 @@ function AdminPage() {
     if (!file) return;
     const validation = validateMediaFile(file, { allowSvg: true, maxSizeMB: 2 });
     if (!validation.valid) {
-      triggerToast(validation.error || "Invalid favicon file");
+      triggerToast({ text: validation.error || "Invalid favicon file", type: "error" });
       e.target.value = "";
       return;
     }
@@ -932,7 +958,10 @@ function AdminPage() {
     setBrandingError("");
     try {
       const res = await uploadMediaFile(pendingFaviconFile, "branding", { allowSvg: true, maxSizeMB: 2 });
-      await store.updateSiteSettings({ faviconUrl: res.url });
+      const writeRes = await store.updateSiteSettings({ faviconUrl: res.url });
+      if (writeRes && writeRes.success === false) {
+        throw new Error(writeRes.error?.message || "Firestore save failed");
+      }
       setPendingFaviconFile(null);
       setPendingFaviconPreview(null);
       setBrandingError("");
@@ -941,7 +970,7 @@ function AdminPage() {
       console.error("Favicon upload error:", err);
       const msg = err?.message || "Failed to upload and save favicon.";
       setBrandingError(msg);
-      triggerToast(msg);
+      triggerToast({ text: `Firestore save failed: ${msg}`, type: "error" });
     } finally {
       setIsUploading(false);
     }
@@ -953,7 +982,7 @@ function AdminPage() {
     if (!file) return;
     const validation = validateMediaFile(file, { maxSizeMB: 10 });
     if (!validation.valid) {
-      triggerToast(validation.error || "Invalid hero image file");
+      triggerToast({ text: validation.error || "Invalid hero image file", type: "error" });
       e.target.value = "";
       return;
     }
@@ -974,7 +1003,10 @@ function AdminPage() {
     setHeroUploadError("");
     try {
       const res = await uploadMediaFile(pendingHeroFile, "hero", { maxSizeMB: 10 });
-      await store.updateHomepage({ heroImage: res.url });
+      const writeRes = await store.updateHomepage({ heroImage: res.url });
+      if (writeRes && writeRes.success === false) {
+        throw new Error(writeRes.error?.message || "Firestore save failed");
+      }
       setPendingHeroFile(null);
       setPendingHeroPreview(null);
       setHeroUploadError("");
@@ -983,7 +1015,7 @@ function AdminPage() {
       console.error("Hero upload error:", err);
       const msg = err?.message || "Failed to upload hero image.";
       setHeroUploadError(msg);
-      triggerToast(msg);
+      triggerToast({ text: `Firestore save failed: ${msg}`, type: "error" });
     } finally {
       setIsUploading(false);
     }
@@ -995,7 +1027,7 @@ function AdminPage() {
     if (!file) return;
     const validation = validateMediaFile(file, { maxSizeMB: 5 });
     if (!validation.valid) {
-      triggerToast(validation.error || "Invalid department image file");
+      triggerToast({ text: validation.error || "Invalid department image file", type: "error" });
       e.target.value = "";
       return;
     }
@@ -1016,7 +1048,10 @@ function AdminPage() {
     setDeptUploadError("");
     try {
       const res = await uploadMediaFile(pendingDeptFile, "departments", { maxSizeMB: 5 });
-      await store.updateDepartment(deptCode, { image: res.url });
+      const writeRes = await store.updateDepartment(deptCode, { image: res.url });
+      if (writeRes && writeRes.success === false) {
+        throw new Error(writeRes.error?.message || "Firestore save failed");
+      }
       setPendingDeptFile(null);
       setPendingDeptPreview(null);
       setDeptUploadError("");
@@ -1025,7 +1060,7 @@ function AdminPage() {
       console.error(err);
       const msg = err?.message || "Failed to upload department image.";
       setDeptUploadError(msg);
-      triggerToast(msg);
+      triggerToast({ text: `Firestore save failed: ${msg}`, type: "error" });
     } finally {
       setIsUploading(false);
     }
@@ -1046,41 +1081,42 @@ function AdminPage() {
     }
 
     if (data.id) {
-      await store.updateFacility(data.id, {
-        title: data.title,
-        tagline: data.tagline,
-        description: data.description,
-        keyFeatures: data.keyFeatures,
-        image: finalImageUrl,
-        published: data.published,
-      });
-      triggerToast(`Saved facility: ${data.title}! Details and photo updated.`);
+      await handleStoreAction(
+        store.updateFacility(data.id, {
+          title: data.title,
+          tagline: data.tagline,
+          description: data.description,
+          keyFeatures: data.keyFeatures,
+          image: finalImageUrl,
+          published: data.published,
+        }),
+        `Saved facility: ${data.title}! Details and photo updated.`
+      );
     } else {
-      await store.addFacility({
-        title: data.title,
-        tagline: data.tagline,
-        description: data.description,
-        keyFeatures: data.keyFeatures,
-        image: finalImageUrl,
-        published: data.published,
-      });
-      triggerToast(`Added new facility: ${data.title}!`);
+      await handleStoreAction(
+        store.addFacility({
+          title: data.title,
+          tagline: data.tagline,
+          description: data.description,
+          keyFeatures: data.keyFeatures,
+          image: finalImageUrl,
+          published: data.published,
+        }),
+        `Added new facility: ${data.title}!`
+      );
     }
   }
 
   async function handleDeleteFacility(id: string) {
-    await store.deleteFacility(id);
-    triggerToast("Facility deleted successfully.");
+    await handleStoreAction(store.deleteFacility(id), "Facility deleted successfully.");
   }
 
   // 6. Announcement Handlers
   async function handleSaveAnnouncement(data: Omit<Announcement, "id"> & { id?: string }) {
     if (data.id) {
-      await store.updateAnnouncement(data.id, data);
-      triggerToast(`Updated notice: ${data.title}`);
+      await handleStoreAction(store.updateAnnouncement(data.id, data), `Updated notice: ${data.title}`);
     } else {
-      await store.addAnnouncement(data);
-      triggerToast(`Published announcement: ${data.title}`);
+      await handleStoreAction(store.addAnnouncement(data), `Published announcement: ${data.title}`);
     }
   }
 
@@ -1099,11 +1135,9 @@ function AdminPage() {
     }
 
     if (data.id) {
-      await store.updateEvent(data.id, { ...data, image: finalImageUrl });
-      triggerToast(`Updated event: ${data.title}`);
+      await handleStoreAction(store.updateEvent(data.id, { ...data, image: finalImageUrl }), `Updated event: ${data.title}`);
     } else {
-      await store.addEvent({ ...data, image: finalImageUrl });
-      triggerToast(`Added event: ${data.title}`);
+      await handleStoreAction(store.addEvent({ ...data, image: finalImageUrl }), `Added event: ${data.title}`);
     }
   }
 
@@ -1214,10 +1248,20 @@ function AdminPage() {
   return (
     <div className="min-h-screen bg-slate-100 flex flex-col">
       {/* Toast Alert */}
-      {toastMessage && (
-        <div className="fixed bottom-5 right-5 z-50 bg-[#0b224d] text-white px-4 py-3 rounded-lg shadow-xl border border-amber-500 flex items-center gap-2.5 text-xs font-semibold animate-in slide-in-from-bottom">
-          <CheckCircle2 size={16} className="text-amber-400" />
-          <span>{toastMessage}</span>
+      {toast && (
+        <div
+          className={`fixed bottom-5 right-5 z-50 px-4 py-3 rounded-lg shadow-xl border flex items-center gap-2.5 text-xs font-semibold animate-in slide-in-from-bottom ${
+            toast.type === "error"
+              ? "bg-red-950 border-red-500 text-red-100"
+              : "bg-[#0b224d] border-amber-500 text-white"
+          }`}
+        >
+          {toast.type === "error" ? (
+            <AlertCircle size={18} className="text-red-400 shrink-0" />
+          ) : (
+            <CheckCircle2 size={18} className="text-amber-400 shrink-0" />
+          )}
+          <span>{toast.text}</span>
         </div>
       )}
 
@@ -1917,12 +1961,14 @@ function AdminPage() {
                   onSubmit={async (e) => {
                     e.preventDefault();
                     const fd = new FormData(e.currentTarget);
-                    await store.updateSiteSettings({
-                      name: String(fd.get("name") || ""),
-                      shortName: String(fd.get("shortName") || ""),
-                      counselingCode: String(fd.get("counselingCode") || ""),
-                    });
-                    triggerToast("Branding settings saved successfully.");
+                    await handleStoreAction(
+                      store.updateSiteSettings({
+                        name: String(fd.get("name") || ""),
+                        shortName: String(fd.get("shortName") || ""),
+                        counselingCode: String(fd.get("counselingCode") || ""),
+                      }),
+                      "Branding settings saved successfully to Cloud Firestore."
+                    );
                   }}
                   className="space-y-4 pt-2"
                 >
@@ -1979,17 +2025,19 @@ function AdminPage() {
                   const fd = new FormData(e.currentTarget);
                   const missionStr = String(fd.get("mission") || "");
                   const missionsList = missionStr.split("\n").map((m) => m.trim()).filter(Boolean);
-                  await store.updateSiteSettings({
-                    foundedYear: String(fd.get("foundedYear") || ""),
-                    established: `Founded in ${fd.get("foundedYear") || "2021"}`,
-                    tagline: String(fd.get("tagline") || ""),
-                    aboutText: String(fd.get("aboutText") || ""),
-                    vision: String(fd.get("vision") || ""),
-                    mission: missionStr,
-                    missions: missionsList,
-                    affiliations: String(fd.get("affiliations") || ""),
-                  });
-                  triggerToast("General College Information updated successfully.");
+                  await handleStoreAction(
+                    store.updateSiteSettings({
+                      foundedYear: String(fd.get("foundedYear") || ""),
+                      established: `Founded in ${fd.get("foundedYear") || "2021"}`,
+                      tagline: String(fd.get("tagline") || ""),
+                      aboutText: String(fd.get("aboutText") || ""),
+                      vision: String(fd.get("vision") || ""),
+                      mission: missionStr,
+                      missions: missionsList,
+                      affiliations: String(fd.get("affiliations") || ""),
+                    }),
+                    "General College Information updated successfully in Cloud Firestore."
+                  );
                 }}
                 className="bg-white p-6 rounded-b border border-slate-200 shadow-sm space-y-4"
               >
@@ -2090,17 +2138,19 @@ function AdminPage() {
                     .split("\n")
                     .map((p) => p.trim())
                     .filter(Boolean);
-                  await store.updateLeadership({
-                    principal: {
-                      name: String(fd.get("name") || store.leadership.principal.name),
-                      title: String(fd.get("title") || store.leadership.principal.title),
-                      qualifications: String(fd.get("qualifications") || store.leadership.principal.qualifications),
-                      experience: String(fd.get("experience") || store.leadership.principal.experience),
-                      message: String(fd.get("message") || store.leadership.principal.message),
-                      keyPoints: points.length > 0 ? points : store.leadership.principal.keyPoints,
-                    },
-                  });
-                  triggerToast("Principal's Desk & Leadership details updated successfully!");
+                  await handleStoreAction(
+                    store.updateLeadership({
+                      principal: {
+                        name: String(fd.get("name") || store.leadership.principal.name),
+                        title: String(fd.get("title") || store.leadership.principal.title),
+                        qualifications: String(fd.get("qualifications") || store.leadership.principal.qualifications),
+                        experience: String(fd.get("experience") || store.leadership.principal.experience),
+                        message: String(fd.get("message") || store.leadership.principal.message),
+                        keyPoints: points.length > 0 ? points : store.leadership.principal.keyPoints,
+                      },
+                    }),
+                    "Principal's Desk & Leadership details updated successfully in Cloud Firestore!"
+                  );
                 }}
                 className="bg-white p-6 rounded-b border border-slate-200 shadow-sm space-y-4"
               >
@@ -2194,22 +2244,24 @@ function AdminPage() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
-                  await store.updateSiteSettings({
-                    phone: String(fd.get("phone") || ""),
-                    admissionsPhone: String(fd.get("admissionsPhone") || ""),
-                    email: String(fd.get("email") || ""),
-                    admissionsEmail: String(fd.get("admissionsEmail") || ""),
-                    examCellEmail: String(fd.get("examCellEmail") || ""),
-                    placementEmail: String(fd.get("placementEmail") || ""),
-                    address: String(fd.get("address") || ""),
-                    city: String(fd.get("city") || ""),
-                    state: String(fd.get("state") || ""),
-                    pincode: String(fd.get("pincode") || ""),
-                    location: String(fd.get("location") || ""),
-                    workingHours: String(fd.get("workingHours") || ""),
-                    mapsUrl: String(fd.get("mapsUrl") || ""),
-                  });
-                  triggerToast("Contact details updated successfully. Header, Footer, and Contact page synchronized.");
+                  await handleStoreAction(
+                    store.updateSiteSettings({
+                      phone: String(fd.get("phone") || ""),
+                      admissionsPhone: String(fd.get("admissionsPhone") || ""),
+                      email: String(fd.get("email") || ""),
+                      admissionsEmail: String(fd.get("admissionsEmail") || ""),
+                      examCellEmail: String(fd.get("examCellEmail") || ""),
+                      placementEmail: String(fd.get("placementEmail") || ""),
+                      address: String(fd.get("address") || ""),
+                      city: String(fd.get("city") || ""),
+                      state: String(fd.get("state") || ""),
+                      pincode: String(fd.get("pincode") || ""),
+                      location: String(fd.get("location") || ""),
+                      workingHours: String(fd.get("workingHours") || ""),
+                      mapsUrl: String(fd.get("mapsUrl") || ""),
+                    }),
+                    "Contact details updated successfully in Cloud Firestore."
+                  );
                 }}
                 className="bg-white p-6 rounded-b border border-slate-200 shadow-sm space-y-4"
               >
@@ -2316,16 +2368,18 @@ function AdminPage() {
                 onSubmit={async (e) => {
                   e.preventDefault();
                   const fd = new FormData(e.currentTarget);
-                  await store.updateSiteSettings({
-                    socialLinks: {
-                      facebook: String(fd.get("facebook") || ""),
-                      twitter: String(fd.get("twitter") || ""),
-                      linkedin: String(fd.get("linkedin") || ""),
-                      youtube: String(fd.get("youtube") || ""),
-                      instagram: String(fd.get("instagram") || ""),
-                    },
-                  });
-                  triggerToast("Social media handles saved successfully.");
+                  await handleStoreAction(
+                    store.updateSiteSettings({
+                      socialLinks: {
+                        facebook: String(fd.get("facebook") || ""),
+                        twitter: String(fd.get("twitter") || ""),
+                        linkedin: String(fd.get("linkedin") || ""),
+                        youtube: String(fd.get("youtube") || ""),
+                        instagram: String(fd.get("instagram") || ""),
+                      },
+                    }),
+                    "Social media handles saved successfully to Cloud Firestore."
+                  );
                 }}
                 className="bg-white p-6 rounded-b border border-slate-200 shadow-sm space-y-4"
               >
@@ -2378,25 +2432,27 @@ function AdminPage() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                await store.updateHomepage({
-                  heroHeading: String(fd.get("heroHeading") || ""),
-                  heroSubtitle: String(fd.get("heroSubtitle") || ""),
-                  topBannerText: String(fd.get("topBannerText") || ""),
-                  heroPrimaryBtnText: String(fd.get("heroPrimaryBtnText") || ""),
-                  heroPrimaryBtnLink: String(fd.get("heroPrimaryBtnLink") || ""),
-                  heroSecondaryBtnText: String(fd.get("heroSecondaryBtnText") || ""),
-                  heroSecondaryBtnLink: String(fd.get("heroSecondaryBtnLink") || ""),
-                  aboutPreviewTitle: String(fd.get("aboutPreviewTitle") || ""),
-                  aboutPreviewText: String(fd.get("aboutPreviewText") || ""),
-                  ctaTitle: String(fd.get("ctaTitle") || ""),
-                  ctaText: String(fd.get("ctaText") || ""),
-                  institutionStatus: String(fd.get("institutionStatus") || "Autonomous"),
-                  accreditation: String(fd.get("accreditation") || "NAAC A+"),
-                  accreditationDescription: String(fd.get("accreditationDescription") || ""),
-                  showAccreditation: fd.get("showAccreditation") === "on",
-                  homepageHighlight: fd.get("homepageHighlight") === "on",
-                });
-                triggerToast("Homepage content updated! Public homepage reflects these changes immediately.");
+                await handleStoreAction(
+                  store.updateHomepage({
+                    heroHeading: String(fd.get("heroHeading") || ""),
+                    heroSubtitle: String(fd.get("heroSubtitle") || ""),
+                    topBannerText: String(fd.get("topBannerText") || ""),
+                    heroPrimaryBtnText: String(fd.get("heroPrimaryBtnText") || ""),
+                    heroPrimaryBtnLink: String(fd.get("heroPrimaryBtnLink") || ""),
+                    heroSecondaryBtnText: String(fd.get("heroSecondaryBtnText") || ""),
+                    heroSecondaryBtnLink: String(fd.get("heroSecondaryBtnLink") || ""),
+                    aboutPreviewTitle: String(fd.get("aboutPreviewTitle") || ""),
+                    aboutPreviewText: String(fd.get("aboutPreviewText") || ""),
+                    ctaTitle: String(fd.get("ctaTitle") || ""),
+                    ctaText: String(fd.get("ctaText") || ""),
+                    institutionStatus: String(fd.get("institutionStatus") || "Autonomous"),
+                    accreditation: String(fd.get("accreditation") || "NAAC A+"),
+                    accreditationDescription: String(fd.get("accreditationDescription") || ""),
+                    showAccreditation: fd.get("showAccreditation") === "on",
+                    homepageHighlight: fd.get("homepageHighlight") === "on",
+                  }),
+                  "Homepage content updated and saved to Cloud Firestore! Public website reflects changes live."
+                );
               }}
               className="space-y-6"
             >
@@ -2704,14 +2760,16 @@ function AdminPage() {
                       const showInput = container.querySelector<HTMLInputElement>('input[name="showAccreditation"]');
                       const highlightInput = container.querySelector<HTMLInputElement>('input[name="homepageHighlight"]');
 
-                      await store.updateHomepage({
-                        institutionStatus: statusInput?.value || "Autonomous",
-                        accreditation: accInput?.value || "NAAC A+",
-                        accreditationDescription: descInput?.value || "",
-                        showAccreditation: showInput ? showInput.checked : true,
-                        homepageHighlight: highlightInput ? highlightInput.checked : true,
-                      });
-                      triggerToast("Accreditation & Institutional Status updated successfully! Homepage refreshed.");
+                      await handleStoreAction(
+                        store.updateHomepage({
+                          institutionStatus: statusInput?.value || "Autonomous",
+                          accreditation: accInput?.value || "NAAC A+",
+                          accreditationDescription: descInput?.value || "",
+                          showAccreditation: showInput ? showInput.checked : true,
+                          homepageHighlight: highlightInput ? highlightInput.checked : true,
+                        }),
+                        "Accreditation & Institutional Status updated successfully in Cloud Firestore! Homepage refreshed."
+                      );
                     }}
                     className="bg-[#0b224d] hover:bg-[#102a5c] text-white px-4 py-2 rounded text-xs font-bold uppercase tracking-wider flex items-center gap-1.5 shadow-xs"
                   >
@@ -2855,15 +2913,17 @@ function AdminPage() {
               key={selectedDepartment.slug}
               department={selectedDepartment}
               onSave={async (slug, updates) => {
-                await store.updateDepartment(slug, updates);
+                const res = await store.updateDepartment(slug, updates);
+                if (res && res.success === false) {
+                  throw new Error(res.error?.message || "Firestore save failed");
+                }
               }}
               onDelete={async (slug) => {
-                await store.deleteDepartment(slug);
+                await handleStoreAction(store.deleteDepartment(slug), "Department deleted successfully.");
                 const remaining = store.departments.filter((d) => d.slug !== slug);
                 if (remaining[0]) {
                   setSelectedDeptSlug(remaining[0].slug);
                 }
-                triggerToast("Department deleted successfully.");
               }}
               canDelete={store.departments.length > 1}
               deptImageInputRef={deptImageInputRef}
@@ -3500,26 +3560,28 @@ function AdminPage() {
               onSubmit={async (e) => {
                 e.preventDefault();
                 const fd = new FormData(e.currentTarget);
-                await store.updateSiteSettings({
-                  phone: String(fd.get("phone") || ""),
-                  admissionsPhone: String(fd.get("admissionsPhone") || ""),
-                  email: String(fd.get("email") || ""),
-                  admissionsEmail: String(fd.get("admissionsEmail") || ""),
-                  address: String(fd.get("address") || ""),
-                  city: String(fd.get("city") || ""),
-                  state: String(fd.get("state") || ""),
-                  pincode: String(fd.get("pincode") || ""),
-                  workingHours: String(fd.get("workingHours") || ""),
-                  mapsUrl: String(fd.get("mapsUrl") || ""),
-                  socialLinks: {
-                    linkedin: String(fd.get("linkedin") || ""),
-                    youtube: String(fd.get("youtube") || ""),
-                    twitter: String(fd.get("twitter") || ""),
-                    facebook: String(fd.get("facebook") || ""),
-                    instagram: String(fd.get("instagram") || ""),
-                  },
-                });
-                triggerToast("Contact desk updated and synchronized across all public routes & Firestore.");
+                await handleStoreAction(
+                  store.updateSiteSettings({
+                    phone: String(fd.get("phone") || ""),
+                    admissionsPhone: String(fd.get("admissionsPhone") || ""),
+                    email: String(fd.get("email") || ""),
+                    admissionsEmail: String(fd.get("admissionsEmail") || ""),
+                    address: String(fd.get("address") || ""),
+                    city: String(fd.get("city") || ""),
+                    state: String(fd.get("state") || ""),
+                    pincode: String(fd.get("pincode") || ""),
+                    workingHours: String(fd.get("workingHours") || ""),
+                    mapsUrl: String(fd.get("mapsUrl") || ""),
+                    socialLinks: {
+                      linkedin: String(fd.get("linkedin") || ""),
+                      youtube: String(fd.get("youtube") || ""),
+                      twitter: String(fd.get("twitter") || ""),
+                      facebook: String(fd.get("facebook") || ""),
+                      instagram: String(fd.get("instagram") || ""),
+                    },
+                  }),
+                  "Contact desk updated and synchronized across all public routes & Cloud Firestore."
+                );
               }}
               className="bg-white p-6 rounded border border-slate-200 shadow-sm space-y-5"
             >
@@ -3866,28 +3928,32 @@ function AdminPage() {
                       const res = await uploadMediaFile(file, "gallery", { maxSizeMB: 5 });
                       imageUrl = res.url;
                     }
-                    await store.updateGalleryItem(editingGalleryItem.id, {
-                      title,
-                      category,
-                      usedIn,
-                      alt: title,
-                      image: imageUrl,
-                    });
-                    triggerToast(`Updated photo: ${title}`);
+                    await handleStoreAction(
+                      store.updateGalleryItem(editingGalleryItem.id, {
+                        title,
+                        category,
+                        usedIn,
+                        alt: title,
+                        image: imageUrl,
+                      }),
+                      `Updated photo: ${title}`
+                    );
                   } else {
                     let imageUrl = "/assets/campus-main.jpg";
                     if (file && file.size > 0) {
                       const res = await uploadMediaFile(file, "gallery", { maxSizeMB: 5 });
                       imageUrl = res.url;
                     }
-                    await store.addGalleryItem({
-                      title,
-                      category,
-                      image: imageUrl,
-                      alt: title,
-                      usedIn,
-                    });
-                    triggerToast(`Photo added to gallery: ${title}`);
+                    await handleStoreAction(
+                      store.addGalleryItem({
+                        title,
+                        category,
+                        image: imageUrl,
+                        alt: title,
+                        usedIn,
+                      }),
+                      `Photo added to gallery: ${title}`
+                    );
                   }
                   setShowAddGalleryModal(false);
                   setEditingGalleryItem(null);

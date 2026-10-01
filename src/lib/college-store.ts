@@ -25,7 +25,8 @@ import {
   type PlacementGalleryItem,
   type Leadership,
 } from "@/data/site";
-import { isFirebaseConfigured, collectionNames, db } from "@/lib/firebase";
+import { isFirebaseConfigured, collectionNames, db, auth } from "@/lib/firebase";
+import { onAuthStateChanged } from "firebase/auth";
 import {
   collection,
   getDocs,
@@ -204,27 +205,18 @@ export function useCollegeStore() {
         }, (err) => handleListenerError("siteSettings", err));
         unsubs.push(unsubSite);
 
-        // 2. Departments listener
+        // 2. Departments listener - Cloud Firestore is authoritative
         const unsubDept = onSnapshot(collection(db, "departments"), (snap) => {
           if (!snap.empty && isMounted) {
             const remoteDepts = snap.docs.map((d) => d.data() as Department);
-            const merged = initialDepartments.map((initD) => {
-              const found = remoteDepts.find((rd) => rd.slug === initD.slug || rd.code === initD.code);
-              return found ? { ...initD, ...found } : initD;
-            });
-            remoteDepts.forEach((rd) => {
-              if (!merged.some((m) => m.slug === rd.slug || m.code === rd.code)) {
-                merged.push(rd);
-              }
-            });
-            setDepartmentsState(merged);
-            setStored(STORAGE_KEYS.departments, merged);
+            setDepartmentsState(remoteDepts);
+            setStored(STORAGE_KEYS.departments, remoteDepts);
             notifyAll();
           }
         }, (err) => handleListenerError("departments", err));
         unsubs.push(unsubDept);
 
-        // 3. Homepage listener
+        // 3. Homepage listener - Cloud Firestore is authoritative
         const unsubHome = onSnapshot(doc(db, "homepage", "content"), (snap) => {
           if (snap.exists() && isMounted) {
             const data = snap.data() as Partial<HomepageSettings>;
@@ -236,28 +228,12 @@ export function useCollegeStore() {
         }, (err) => handleListenerError("homepage", err));
         unsubs.push(unsubHome);
 
-        // 4. Facilities listener
+        // 4. Facilities listener - Cloud Firestore is authoritative
         const unsubFac = onSnapshot(collection(db, "facilities"), (snap) => {
           if (!snap.empty && isMounted) {
             const remoteFacs = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as CollegeFacility[];
-            const merged = initialFacilities.map((initF) => {
-              const found = remoteFacs.find((rf) => rf.id === initF.id);
-              return found
-                ? {
-                    ...initF,
-                    ...found,
-                    image: found.image || initF.image,
-                    keyFeatures: Array.isArray(found.keyFeatures) ? found.keyFeatures : initF.keyFeatures || [],
-                  }
-                : initF;
-            });
-            remoteFacs.forEach((rf) => {
-              if (!merged.some((m) => m.id === rf.id)) {
-                merged.push({ ...rf, keyFeatures: Array.isArray(rf.keyFeatures) ? rf.keyFeatures : [] });
-              }
-            });
-            setFacilitiesState(merged);
-            setStored(STORAGE_KEYS.facilities, merged);
+            setFacilitiesState(remoteFacs);
+            setStored(STORAGE_KEYS.facilities, remoteFacs);
             notifyAll();
           }
         }, (err) => handleListenerError("facilities", err));
@@ -320,16 +296,31 @@ export function useCollegeStore() {
         }, (err) => handleListenerError("placements/overview", err));
         unsubs.push(unsubPlace);
 
-        // 10. Enquiries listener (Admin)
-        const unsubEnq = onSnapshot(collection(db, "enquiries"), (snap) => {
-          if (!snap.empty && isMounted) {
-            const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as AdmissionEnquiry[];
-            setEnquiriesState(list);
-            setStored(STORAGE_KEYS.enquiries, list);
-            notifyAll();
+        // 10. Enquiries listener (Admin only - attached when authenticated)
+        let unsubEnq: (() => void) | null = null;
+        const unsubAuth = onAuthStateChanged(auth, (user) => {
+          if (user && isMounted && !unsubEnq) {
+            unsubEnq = onSnapshot(
+              collection(db, "enquiries"),
+              (snap) => {
+                if (isMounted) {
+                  const list = snap.docs.map((d) => ({ ...d.data(), id: d.id })) as AdmissionEnquiry[];
+                  setEnquiriesState(list);
+                  setStored(STORAGE_KEYS.enquiries, list);
+                  notifyAll();
+                }
+              },
+              (err) => handleListenerError("enquiries", err)
+            );
+          } else if (!user && unsubEnq) {
+            unsubEnq();
+            unsubEnq = null;
           }
-        }, (err) => handleListenerError("enquiries", err));
-        unsubs.push(unsubEnq);
+        });
+        unsubs.push(() => {
+          unsubAuth();
+          if (unsubEnq) unsubEnq();
+        });
 
       } catch (err) {
         console.warn("Firestore listeners initialization fallback to cached data:", err);
@@ -345,9 +336,14 @@ export function useCollegeStore() {
   }, []);
 
   const syncToFirestore = async (docRef: any, data: any, description: string) => {
-    if (!isFirebaseConfigured) return { success: true, cloudSynced: false };
+    if (!isFirebaseConfigured) {
+      const err = new Error("Firebase is not configured on this client.");
+      console.error(`[CollegeStore] Firestore write failed for ${description}:`, err);
+      return { success: false, cloudSynced: false, error: err };
+    }
     try {
       await setDoc(docRef, data, { merge: true });
+      console.log(`Firestore write successful for ${description}.`);
       return { success: true, cloudSynced: true };
     } catch (err: any) {
       console.error(`[CollegeStore] Firestore write failed for ${description}:`, err.code || err.message, err);
@@ -362,9 +358,14 @@ export function useCollegeStore() {
   };
 
   const deleteFromFirestore = async (docRef: any, description: string) => {
-    if (!isFirebaseConfigured) return { success: true, cloudSynced: false };
+    if (!isFirebaseConfigured) {
+      const err = new Error("Firebase is not configured on this client.");
+      console.error(`[CollegeStore] Firestore delete failed for ${description}:`, err);
+      return { success: false, cloudSynced: false, error: err };
+    }
     try {
       await deleteDoc(docRef);
+      console.log(`Firestore delete successful for ${description}.`);
       return { success: true, cloudSynced: true };
     } catch (err: any) {
       console.error(`[CollegeStore] Firestore delete failed for ${description}:`, err.code || err.message, err);
@@ -379,11 +380,13 @@ export function useCollegeStore() {
       ...updates,
       established: updates.foundedYear ? `Founded in ${updates.foundedYear}` : (updates.established || siteSettings.established),
     };
-    setSiteSettingsState(updated);
-    setStored(STORAGE_KEYS.siteSettings, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, collectionNames.siteSettings, "general"), updated, "siteSettings/general");
+    const res = await syncToFirestore(doc(db, collectionNames.siteSettings, "general"), updated, "siteSettings/general");
+    if (res.success) {
+      setSiteSettingsState(updated);
+      setStored(STORAGE_KEYS.siteSettings, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   // 2. Department Management (e.g. change Intake 180 -> 100)
@@ -394,33 +397,38 @@ export function useCollegeStore() {
       }
       return d;
     });
-    setDepartmentsState(updated);
-    setStored(STORAGE_KEYS.departments, updated);
-    notifyAll();
-
     const target = updated.find((d) => d.code === codeOrSlug || d.slug === codeOrSlug);
-    if (target) {
-      return await syncToFirestore(doc(db, "departments", target.slug), target, `departments/${target.slug}`);
+    if (!target) return { success: false, cloudSynced: false, error: new Error("Department not found") };
+
+    const res = await syncToFirestore(doc(db, "departments", target.slug), target, `departments/${target.slug}`);
+    if (res.success) {
+      setDepartmentsState(updated);
+      setStored(STORAGE_KEYS.departments, updated);
+      notifyAll();
     }
-    return { success: true, cloudSynced: false };
+    return res;
   };
 
   const addDepartment = async (newDept: Department) => {
     const updated = [...departments, newDept];
-    setDepartmentsState(updated);
-    setStored(STORAGE_KEYS.departments, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, "departments", newDept.slug), newDept, `departments/${newDept.slug}`);
+    const res = await syncToFirestore(doc(db, "departments", newDept.slug), newDept, `departments/${newDept.slug}`);
+    if (res.success) {
+      setDepartmentsState(updated);
+      setStored(STORAGE_KEYS.departments, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const deleteDepartment = async (slugOrCode: string) => {
     const updated = departments.filter((d) => d.slug !== slugOrCode && d.code !== slugOrCode);
-    setDepartmentsState(updated);
-    setStored(STORAGE_KEYS.departments, updated);
-    notifyAll();
-
-    return await deleteFromFirestore(doc(db, "departments", slugOrCode), `departments/${slugOrCode}`);
+    const res = await deleteFromFirestore(doc(db, "departments", slugOrCode), `departments/${slugOrCode}`);
+    if (res.success) {
+      setDepartmentsState(updated);
+      setStored(STORAGE_KEYS.departments, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const updateDepartments = async (list: Department[]) => {
@@ -432,21 +440,25 @@ export function useCollegeStore() {
   // 3. Homepage CMS
   const updateHomepage = async (updates: Partial<HomepageSettings>) => {
     const updated = { ...homepage, ...updates };
-    setHomepageState(updated);
-    setStored(STORAGE_KEYS.homepage, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, "homepage", "content"), updated, "homepage/content");
+    const res = await syncToFirestore(doc(db, "homepage", "content"), updated, "homepage/content");
+    if (res.success) {
+      setHomepageState(updated);
+      setStored(STORAGE_KEYS.homepage, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   // 4. Leadership & Principal's Message
   const updateLeadership = async (updates: Partial<Leadership>) => {
     const updated = { ...leadership, ...updates };
-    setLeadershipState(updated);
-    setStored(STORAGE_KEYS.leadership, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, collectionNames.about, "leadership"), updated, "about/leadership");
+    const res = await syncToFirestore(doc(db, collectionNames.about, "leadership"), updated, "about/leadership");
+    if (res.success) {
+      setLeadershipState(updated);
+      setStored(STORAGE_KEYS.leadership, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   // 5. Facilities CMS
@@ -458,40 +470,51 @@ export function useCollegeStore() {
 
   const updateFacility = async (id: string, updates: Partial<CollegeFacility>) => {
     const updated = facilities.map((f) => (f.id === id ? { ...f, ...updates } : f));
-    setFacilitiesState(updated);
-    setStored(STORAGE_KEYS.facilities, updated);
-    notifyAll();
+    const target = updated.find((f) => f.id === id);
+    if (!target) return { success: false, cloudSynced: false, error: new Error("Facility not found") };
 
-    return await syncToFirestore(doc(db, "facilities", id), updates, `facilities/${id}`);
+    const res = await syncToFirestore(doc(db, "facilities", id), target, `facilities/${id}`);
+    if (res.success) {
+      setFacilitiesState(updated);
+      setStored(STORAGE_KEYS.facilities, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const addFacility = async (item: Omit<CollegeFacility, "id">) => {
     const newItem: CollegeFacility = { ...item, id: `fac-${Date.now()}` };
     const updated = [...facilities, newItem];
-    setFacilitiesState(updated);
-    setStored(STORAGE_KEYS.facilities, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, "facilities", newItem.id), newItem, `facilities/${newItem.id}`);
+    const res = await syncToFirestore(doc(db, "facilities", newItem.id), newItem, `facilities/${newItem.id}`);
+    if (res.success) {
+      setFacilitiesState(updated);
+      setStored(STORAGE_KEYS.facilities, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const deleteFacility = async (id: string) => {
     const updated = facilities.filter((f) => f.id !== id);
-    setFacilitiesState(updated);
-    setStored(STORAGE_KEYS.facilities, updated);
-    notifyAll();
-
-    return await deleteFromFirestore(doc(db, "facilities", id), `facilities/${id}`);
+    const res = await deleteFromFirestore(doc(db, "facilities", id), `facilities/${id}`);
+    if (res.success) {
+      setFacilitiesState(updated);
+      setStored(STORAGE_KEYS.facilities, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   // 6. Placements CMS
   const updatePlacements = async (updates: Partial<PlacementData>) => {
     const updated = { ...placements, ...updates };
-    setPlacementsState(updated);
-    setStored(STORAGE_KEYS.placements, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, collectionNames.placements, "overview"), updated, "placements/overview");
+    const res = await syncToFirestore(doc(db, collectionNames.placements, "overview"), updated, "placements/overview");
+    if (res.success) {
+      setPlacementsState(updated);
+      setStored(STORAGE_KEYS.placements, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const addPlacementYear = async (stat: PlacementYearStat) => {
@@ -591,88 +614,118 @@ export function useCollegeStore() {
   // 7. Announcements CRUD
   const addAnnouncement = async (item: Omit<Announcement, "id">) => {
     const newItem: Announcement = { ...item, id: `ann-${Date.now()}` };
-    const updated = [newItem, ...announcements];
-    setAnnouncementsState(updated);
-    setStored(STORAGE_KEYS.announcements, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, collectionNames.announcements, newItem.id), newItem, `announcements/${newItem.id}`);
+    const res = await syncToFirestore(doc(db, collectionNames.announcements, newItem.id), newItem, `announcements/${newItem.id}`);
+    if (res.success) {
+      const updated = [newItem, ...announcements];
+      setAnnouncementsState(updated);
+      setStored(STORAGE_KEYS.announcements, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const updateAnnouncement = async (id: string, updates: Partial<Announcement>) => {
-    const updated = announcements.map((a) => (a.id === id ? { ...a, ...updates } : a));
-    setAnnouncementsState(updated);
-    setStored(STORAGE_KEYS.announcements, updated);
-    notifyAll();
+    const target = announcements.find((a) => a.id === id);
+    if (!target) return { success: false, cloudSynced: false, error: new Error("Announcement not found") };
+    const merged = { ...target, ...updates };
 
-    return await syncToFirestore(doc(db, collectionNames.announcements, id), updates, `announcements/${id}`);
+    const res = await syncToFirestore(doc(db, collectionNames.announcements, id), merged, `announcements/${id}`);
+    if (res.success) {
+      const updated = announcements.map((a) => (a.id === id ? merged : a));
+      setAnnouncementsState(updated);
+      setStored(STORAGE_KEYS.announcements, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const deleteAnnouncement = async (id: string) => {
-    const updated = announcements.filter((a) => a.id !== id);
-    setAnnouncementsState(updated);
-    setStored(STORAGE_KEYS.announcements, updated);
-    notifyAll();
-
-    return await deleteFromFirestore(doc(db, collectionNames.announcements, id), `announcements/${id}`);
+    const res = await deleteFromFirestore(doc(db, collectionNames.announcements, id), `announcements/${id}`);
+    if (res.success) {
+      const updated = announcements.filter((a) => a.id !== id);
+      setAnnouncementsState(updated);
+      setStored(STORAGE_KEYS.announcements, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   // 8. Events CRUD
   const addEvent = async (item: Omit<CollegeEvent, "id">) => {
     const newItem: CollegeEvent = { ...item, id: `evt-${Date.now()}` };
-    const updated = [newItem, ...events];
-    setEventsState(updated);
-    setStored(STORAGE_KEYS.events, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, collectionNames.events, newItem.id), newItem, `events/${newItem.id}`);
+    const res = await syncToFirestore(doc(db, collectionNames.events, newItem.id), newItem, `events/${newItem.id}`);
+    if (res.success) {
+      const updated = [newItem, ...events];
+      setEventsState(updated);
+      setStored(STORAGE_KEYS.events, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const updateEvent = async (id: string, updates: Partial<CollegeEvent>) => {
-    const updated = events.map((e) => (e.id === id ? { ...e, ...updates } : e));
-    setEventsState(updated);
-    setStored(STORAGE_KEYS.events, updated);
-    notifyAll();
+    const target = events.find((e) => e.id === id);
+    if (!target) return { success: false, cloudSynced: false, error: new Error("Event not found") };
+    const merged = { ...target, ...updates };
 
-    return await syncToFirestore(doc(db, collectionNames.events, id), updates, `events/${id}`);
+    const res = await syncToFirestore(doc(db, collectionNames.events, id), merged, `events/${id}`);
+    if (res.success) {
+      const updated = events.map((e) => (e.id === id ? merged : e));
+      setEventsState(updated);
+      setStored(STORAGE_KEYS.events, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const deleteEvent = async (id: string) => {
-    const updated = events.filter((e) => e.id !== id);
-    setEventsState(updated);
-    setStored(STORAGE_KEYS.events, updated);
-    notifyAll();
-
-    return await deleteFromFirestore(doc(db, collectionNames.events, id), `events/${id}`);
+    const res = await deleteFromFirestore(doc(db, collectionNames.events, id), `events/${id}`);
+    if (res.success) {
+      const updated = events.filter((e) => e.id !== id);
+      setEventsState(updated);
+      setStored(STORAGE_KEYS.events, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   // 9. Photo Gallery CRUD
   const addGalleryItem = async (item: Omit<GalleryItem, "id">) => {
     const newItem: GalleryItem = { ...item, id: Date.now() };
-    const updated = [newItem, ...galleryItems];
-    setGalleryState(updated);
-    setStored(STORAGE_KEYS.gallery, updated);
-    notifyAll();
-
-    return await syncToFirestore(doc(db, collectionNames.gallery, String(newItem.id)), newItem, `gallery/${newItem.id}`);
+    const res = await syncToFirestore(doc(db, collectionNames.gallery, String(newItem.id)), newItem, `gallery/${newItem.id}`);
+    if (res.success) {
+      const updated = [newItem, ...galleryItems];
+      setGalleryState(updated);
+      setStored(STORAGE_KEYS.gallery, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const updateGalleryItem = async (id: number | string, updates: Partial<GalleryItem>) => {
-    const updated = galleryItems.map((g) => (g.id === id ? { ...g, ...updates } : g));
-    setGalleryState(updated);
-    setStored(STORAGE_KEYS.gallery, updated);
-    notifyAll();
+    const target = galleryItems.find((g) => g.id === id);
+    if (!target) return { success: false, cloudSynced: false, error: new Error("Gallery item not found") };
+    const merged = { ...target, ...updates };
 
-    return await syncToFirestore(doc(db, collectionNames.gallery, String(id)), updates, `gallery/${id}`);
+    const res = await syncToFirestore(doc(db, collectionNames.gallery, String(id)), merged, `gallery/${id}`);
+    if (res.success) {
+      const updated = galleryItems.map((g) => (g.id === id ? merged : g));
+      setGalleryState(updated);
+      setStored(STORAGE_KEYS.gallery, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   const deleteGalleryItem = async (id: number | string) => {
-    const updated = galleryItems.filter((g) => g.id !== id);
-    setGalleryState(updated);
-    setStored(STORAGE_KEYS.gallery, updated);
-    notifyAll();
-
-    return await deleteFromFirestore(doc(db, collectionNames.gallery, String(id)), `gallery/${id}`);
+    const res = await deleteFromFirestore(doc(db, collectionNames.gallery, String(id)), `gallery/${id}`);
+    if (res.success) {
+      const updated = galleryItems.filter((g) => g.id !== id);
+      setGalleryState(updated);
+      setStored(STORAGE_KEYS.gallery, updated);
+      notifyAll();
+    }
+    return res;
   };
 
   // 10. Admission Enquiries
