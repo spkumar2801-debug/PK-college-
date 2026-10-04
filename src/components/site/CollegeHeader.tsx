@@ -41,9 +41,9 @@ export function CollegeHeader() {
         document.body.style.overflow = "";
         window.removeEventListener("keydown", handleKeyDown);
       };
-    } else {
-      document.body.style.overflow = "";
     }
+    document.body.style.overflow = "";
+    return undefined;
   }, [mobileOpen]);
 
   const latestNotice = announcements[0] || {
