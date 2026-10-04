@@ -1,4 +1,5 @@
 import campusMain from "@/assets/campus-main.jpg";
+import campusSunset from "@/assets/campus-sunset.jpg";
 import campusCourtyard from "@/assets/campus-courtyard.jpg";
 import electronicsLab from "@/assets/lab-electronics.jpg";
 import workshop from "@/assets/workshop.jpg";
@@ -135,6 +136,7 @@ export const initialHomepage: HomepageSettings = {
 
 export const imagery = {
   campusMain,
+  campusSunset,
   campusCourtyard,
   electronicsLab,
   workshop,

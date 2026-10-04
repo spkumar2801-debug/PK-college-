@@ -122,49 +122,70 @@ function HomePage() {
 
   const accreditationParts = getAccreditationDisplay(homepage.accreditation || "NAAC A+");
 
+  const renderHeroHeading = (heading: string) => {
+    const trimmed = heading.trim();
+    const words = trimmed.split(" ");
+    if (words.length <= 1) return heading;
+    const lastWord = words.pop();
+    return (
+      <>
+        <span>{words.join(" ")}</span>{" "}
+        <span className="hero-title-highlight block sm:inline">{lastWord}</span>
+      </>
+    );
+  };
+
   const heroFallback = (
     <section className="college-hero relative overflow-hidden bg-[#07172f]">
       <img
-        src={imagery.campusMain}
+        src={imagery.campusSunset || imagery.campusMain}
         alt={`${site.name} Campus Academic Block`}
-        className="hero-bg-image"
+        className="hero-bg-image max-w-full"
         width={1536}
         height={1024}
       />
       <div className="hero-overlay-gradient" />
       <div className="absolute inset-0 hero-grid-lines pointer-events-none" />
-      <div className="college-container relative z-10 w-full py-12 sm:py-16 md:py-24">
-        <div className="hero-content-wrap max-w-3xl">
-          <div data-reveal="fade-in" className="hero-tag inline-flex items-center gap-2 mb-4 bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs text-white">
-            <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-            <span className="font-semibold tracking-wide">
-              {`B.Tech Admissions Open · Approved by AICTE · Counseling Code: ${site.code}`}
+      <div className="college-container relative z-10 w-full">
+        <div className="hero-content-wrap">
+          {/* Small institutional label */}
+          <div className="hero-institutional-label">
+            <span className="hero-label-line" aria-hidden="true" />
+            <span className="hero-label-text">
+              {homepage.institutionStatus?.toUpperCase() || "AUTONOMOUS"} INSTITUTION · APPROVED BY AICTE
             </span>
           </div>
-          <h1 data-reveal="fade-up" data-reveal-delay="1" className="hero-main-title text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-4">
-            {site.name}
+
+          {/* College Title */}
+          <h1 className="hero-main-title">
+            {renderHeroHeading(site.name)}
           </h1>
-          <p data-reveal="fade-up" data-reveal-delay="2" className="hero-subtitle text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed mb-8 max-w-2xl">
+
+          {/* Description */}
+          <p className="hero-subtitle">
             {site.tagline}
           </p>
-          <div data-reveal="fade-up" data-reveal-delay="3" className="hero-cta-group flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+
+          {/* CTA Buttons */}
+          <div className="hero-cta-group">
             <Link
               to="/admissions"
-              className="bg-[#d97706] hover:bg-[#b45309] text-white px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all btn-institutional"
+              className="hero-btn-primary"
             >
               <span>Explore Admissions</span>
-              <ArrowRight size={16} />
+              <ArrowRight size={18} className="hero-btn-arrow ml-auto shrink-0" />
             </Link>
             <Link
               to="/departments"
-              className="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all backdrop-blur-sm"
+              className="hero-btn-secondary"
             >
               <span>Undergraduate Programs</span>
-              <ChevronRight size={16} />
+              <ArrowRight size={18} className="hero-btn-arrow ml-auto shrink-0" />
             </Link>
           </div>
         </div>
       </div>
+      <div className="hero-bottom-accent" aria-hidden="true" />
     </section>
   );
 
@@ -174,9 +195,9 @@ function HomePage() {
       <SafeSectionBoundary sectionName="Hero" fallback={heroFallback}>
         <section className="college-hero relative overflow-hidden bg-[#07172f]">
           <img
-            src={homepage.heroImage || imagery.campusMain}
+            src={homepage.heroImage || imagery.campusSunset || imagery.campusMain}
             alt={`${site.name} Campus Academic Block`}
-            className="hero-bg-image"
+            className="hero-bg-image max-w-full"
             width={1536}
             height={1024}
           />
@@ -185,43 +206,49 @@ function HomePage() {
           {/* Subtle Architectural Grid Lines Overlay with Ambient Drift */}
           <div className="absolute inset-0 hero-grid-lines pointer-events-none" />
 
-          <div className="college-container relative z-10 w-full py-12 sm:py-16 md:py-24">
-            <div className="hero-content-wrap max-w-3xl">
-              {/* Accreditation & Announcement Badge */}
-              <div data-reveal="fade-in" className="hero-tag inline-flex items-center gap-2 mb-4 bg-white/10 backdrop-blur-md border border-white/20 px-3.5 py-1.5 rounded-full text-xs text-white">
-                <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping shrink-0" />
-                <span className="font-semibold tracking-wide">
-                  {homepage.topBannerText || `B.Tech Admissions Open · Approved by AICTE · Counseling Code: ${site.code}`}
+          <div className="college-container relative z-10 w-full">
+            <div className="hero-content-wrap">
+              {/* Small institutional label */}
+              <div className="hero-institutional-label">
+                <span className="hero-label-line" aria-hidden="true" />
+                <span className="hero-label-text">
+                  {homepage.institutionStatus?.toUpperCase() || "AUTONOMOUS"} INSTITUTION · APPROVED BY AICTE
                 </span>
               </div>
 
-              <h1 data-reveal="fade-up" data-reveal-delay="1" className="hero-main-title text-2xl sm:text-4xl md:text-5xl font-extrabold text-white leading-tight tracking-tight mb-4">
-                {homepage.heroHeading || site.name}
+              {/* College Title */}
+              <h1 className="hero-main-title">
+                {renderHeroHeading(homepage.heroHeading || site.name)}
               </h1>
 
-              <p data-reveal="fade-up" data-reveal-delay="2" className="hero-subtitle text-sm sm:text-base md:text-lg text-slate-200 leading-relaxed mb-8 max-w-2xl">
+              {/* Description */}
+              <p className="hero-subtitle">
                 {homepage.heroSubtitle || site.tagline}
               </p>
 
-              <div data-reveal="fade-up" data-reveal-delay="3" className="hero-cta-group flex flex-col sm:flex-row items-stretch sm:items-center gap-3.5">
+              {/* CTA Buttons */}
+              <div className="hero-cta-group">
                 <Link
                   to={homepage.heroPrimaryBtnLink || "/admissions"}
-                  className="bg-[#d97706] hover:bg-[#b45309] text-white px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 shadow-lg transition-all btn-institutional"
+                  className="hero-btn-primary"
                 >
                   <span>{homepage.heroPrimaryBtnText || "Explore Admissions"}</span>
-                  <ArrowRight size={16} />
+                  <ArrowRight size={18} className="hero-btn-arrow ml-auto shrink-0" />
                 </Link>
 
                 <Link
                   to={homepage.heroSecondaryBtnLink || "/departments"}
-                  className="bg-white/15 hover:bg-white/25 text-white border border-white/30 px-7 py-3.5 rounded-md font-bold text-xs uppercase tracking-wider flex items-center justify-center gap-2 transition-all backdrop-blur-sm"
+                  className="hero-btn-secondary"
                 >
                   <span>{homepage.heroSecondaryBtnText || "Undergraduate Programs"}</span>
-                  <ChevronRight size={16} />
+                  <ArrowRight size={18} className="hero-btn-arrow ml-auto shrink-0" />
                 </Link>
               </div>
             </div>
           </div>
+
+          {/* Bottom subtle decorative gold horizontal accent line */}
+          <div className="hero-bottom-accent" aria-hidden="true" />
         </section>
       </SafeSectionBoundary>
 
@@ -239,48 +266,40 @@ function HomePage() {
           >
           {/* Subtle architectural gold accent border */}
           {homepage.homepageHighlight !== false && (
-            <div className="absolute top-0 left-0 right-0 h-[2px] bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-80" />
+            <div className="absolute top-0 left-0 right-0 h-[1.5px] bg-gradient-to-r from-transparent via-amber-400/80 to-transparent" />
           )}
 
-          <div className="college-container py-6 sm:py-8 md:py-9">
+          <div className="college-container py-7 sm:py-9 md:py-10">
             <div className="flex flex-col lg:flex-row items-center justify-between gap-6 lg:gap-10">
               
-              {/* Left: Institutional Status & NAAC A+ Badge (Adhering to strict visual hierarchy) */}
+              {/* Left: Institutional Recognition Plaque (Adhering to strict institutional hierarchy) */}
               <div
                 data-reveal="fade-up"
-                className={`w-full lg:w-auto shrink-0 flex flex-col items-center justify-center p-5 sm:p-6 md:p-7 rounded border text-center transition-all ${
+                className={`w-full lg:w-[250px] shrink-0 relative flex flex-col items-center justify-center py-7 px-6 rounded-xl border text-center transition-all ${
                   homepage.homepageHighlight !== false
-                    ? "bg-[#0b224d]/95 border-amber-500/35 shadow-md"
-                    : "bg-slate-50 border-slate-300 shadow-xs"
+                    ? "bg-gradient-to-b from-[#0b224d] to-[#061733] border-amber-400/35 shadow-xl shadow-navy-950/40"
+                    : "bg-gradient-to-b from-white to-slate-50 border-slate-300 shadow-md"
                 }`}
               >
-                {/* 1. AUTONOMOUS (Top of Visual Hierarchy) */}
-                <div
-                  className={`inline-flex items-center gap-1.5 px-3.5 py-1 rounded text-xs font-black uppercase tracking-[0.22em] border shadow-xs ${
-                    homepage.homepageHighlight !== false
-                      ? "bg-amber-400/15 border-amber-400/35 text-amber-300"
-                      : "bg-[#0b224d] border-[#0b224d] text-white"
-                  }`}
-                >
-                  <Award className={`w-3.5 h-3.5 ${homepage.homepageHighlight !== false ? "text-amber-400" : "text-amber-300"}`} />
-                  <span>{homepage.institutionStatus || "Autonomous"}</span>
+                {/* Architectural corner accents */}
+                <div className="absolute top-2.5 left-2.5 w-2 h-2 border-t border-l border-amber-400/50" aria-hidden="true" />
+                <div className="absolute top-2.5 right-2.5 w-2 h-2 border-t border-r border-amber-400/50" aria-hidden="true" />
+                <div className="absolute bottom-2.5 left-2.5 w-2 h-2 border-b border-l border-amber-400/50" aria-hidden="true" />
+                <div className="absolute bottom-2.5 right-2.5 w-2 h-2 border-b border-r border-amber-400/50" aria-hidden="true" />
+
+                {/* 1. AUTONOMOUS */}
+                <div className="text-xs font-black uppercase tracking-[0.24em] text-amber-400">
+                  {homepage.institutionStatus || "Autonomous"}
                 </div>
 
-                {/* Elegant Downward Hierarchy Connector Arrow */}
-                <div
-                  aria-hidden="true"
-                  className={`my-1 text-xs font-mono font-bold select-none ${
-                    homepage.homepageHighlight !== false ? "text-amber-400/60" : "text-[#0b224d]/50"
-                  }`}
-                >
-                  ↓
-                </div>
+                {/* Elegant gold hairline separator */}
+                <div className="w-8 h-[1.5px] bg-amber-400/40 my-3 rounded-full" aria-hidden="true" />
 
-                {/* 2. NAAC (Above A+) */}
+                {/* 2. NAAC */}
                 <div className="flex flex-col items-center justify-center">
                   <span
-                    className={`text-xs sm:text-sm font-extrabold uppercase tracking-[0.28em] ${
-                      homepage.homepageHighlight !== false ? "text-slate-200" : "text-[#0b224d]"
+                    className={`text-xs sm:text-sm font-bold uppercase tracking-[0.3em] ${
+                      homepage.homepageHighlight !== false ? "text-slate-300" : "text-slate-700"
                     }`}
                   >
                     {accreditationParts.prefix}
@@ -288,7 +307,7 @@ function HomePage() {
 
                   {/* 3. A+ (Main Visual Highlight with subtle gold shine) */}
                   <span
-                    className={`font-black tracking-tight leading-none my-1 font-serif grade-highlight-accent ${
+                    className={`font-black tracking-tight leading-none my-1.5 font-serif grade-highlight-accent ${
                       accreditationParts.grade.length > 2
                         ? "text-3xl sm:text-4xl text-amber-400"
                         : "text-5xl sm:text-6xl text-amber-400"
@@ -298,7 +317,7 @@ function HomePage() {
                   </span>
 
                   <span
-                    className={`text-[10px] font-bold uppercase tracking-[0.2em] mt-0.5 ${
+                    className={`text-[10px] font-bold uppercase tracking-[0.22em] mt-0.5 ${
                       homepage.homepageHighlight !== false ? "text-amber-300/80" : "text-amber-700"
                     }`}
                   >
@@ -309,25 +328,25 @@ function HomePage() {
 
               {/* Right: Academic Standing & Official Recognition */}
               <div className="flex-1 flex flex-col justify-center text-center lg:text-left w-full">
-                <div data-reveal="fade-up" className="flex items-center justify-center lg:justify-start gap-2 mb-2">
+                <div data-reveal="fade-up" className="flex items-center justify-center lg:justify-start gap-2 mb-2.5">
                   <ShieldCheck
                     className={`w-4 h-4 shrink-0 ${
                       homepage.homepageHighlight !== false ? "text-amber-400" : "text-amber-600"
                     }`}
                   />
                   <span
-                    className={`text-[11px] sm:text-xs font-bold uppercase tracking-wider ${
+                    className={`text-[11px] sm:text-xs font-bold uppercase tracking-[0.16em] ${
                       homepage.homepageHighlight !== false ? "text-amber-300" : "text-amber-700"
                     }`}
                   >
-                    National Quality Accreditation & Regulatory Standing
+                    National Quality Accreditation &amp; Regulatory Standing
                   </span>
                 </div>
 
                 <h2
                   data-reveal="fade-up"
                   data-reveal-delay="1"
-                  className={`text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight mb-2.5 font-serif ${
+                  className={`text-xl sm:text-2xl lg:text-3xl font-extrabold tracking-tight mb-3 font-serif ${
                     homepage.homepageHighlight !== false ? "text-white" : "text-[#0b224d]"
                   }`}
                 >
@@ -338,7 +357,7 @@ function HomePage() {
                 <p
                   data-reveal="fade-up"
                   data-reveal-delay="2"
-                  className={`text-xs sm:text-sm md:text-base leading-relaxed max-w-3xl mb-4 ${
+                  className={`text-xs sm:text-sm md:text-base leading-relaxed max-w-3xl mb-5 ${
                     homepage.homepageHighlight !== false ? "text-slate-200" : "text-slate-700"
                   }`}
                 >
@@ -347,9 +366,9 @@ function HomePage() {
                 </p>
 
                 {/* Official Accreditation Badges */}
-                <div data-reveal="fade-up" data-reveal-delay="3" className="flex flex-wrap items-center justify-center lg:justify-start gap-2">
+                <div data-reveal="fade-up" data-reveal-delay="3" className="flex flex-wrap items-center justify-center lg:justify-start gap-2.5">
                   <div
-                    className={`px-3 py-1 rounded text-[11px] font-bold border transition-colors ${
+                    className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold border transition-colors ${
                       homepage.homepageHighlight !== false
                         ? "bg-white/10 border-white/15 text-slate-200"
                         : "bg-slate-100 border-slate-300 text-slate-800"
@@ -358,16 +377,16 @@ function HomePage() {
                     UGC Conferred Autonomy
                   </div>
                   <div
-                    className={`px-3 py-1 rounded text-[11px] font-bold border transition-colors ${
+                    className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold border transition-colors ${
                       homepage.homepageHighlight !== false
-                        ? "bg-amber-400/10 border-amber-400/30 text-amber-300"
+                        ? "bg-amber-400/10 border-amber-400/35 text-amber-300"
                         : "bg-amber-50 border-amber-300 text-amber-900"
                     }`}
                   >
                     NAAC Grade A+ Accredited
                   </div>
                   <div
-                    className={`px-3 py-1 rounded text-[11px] font-bold border transition-colors ${
+                    className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold border transition-colors ${
                       homepage.homepageHighlight !== false
                         ? "bg-white/10 border-white/15 text-slate-200"
                         : "bg-slate-100 border-slate-300 text-slate-800"
@@ -376,7 +395,7 @@ function HomePage() {
                     Approved by AICTE, New Delhi
                   </div>
                   <div
-                    className={`px-3 py-1 rounded text-[11px] font-bold border transition-colors ${
+                    className={`px-3.5 py-1.5 rounded-md text-[11px] font-bold border transition-colors ${
                       homepage.homepageHighlight !== false
                         ? "bg-white/10 border-white/15 text-slate-200"
                         : "bg-slate-100 border-slate-300 text-slate-800"
@@ -848,7 +867,7 @@ function HomePage() {
                 <img
                   src={imagery.campusCourtyard}
                   alt={`${site.name} Courtyard and Academic Complex`}
-                  className="rounded-lg shadow-md w-full aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] object-cover border-4 border-white"
+                  className="rounded-lg shadow-md w-full max-w-full aspect-[4/3] sm:aspect-[16/11] lg:aspect-[4/3] object-cover border-4 border-white"
                   width={1200}
                   height={900}
                 />

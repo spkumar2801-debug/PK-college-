@@ -7,87 +7,95 @@ import { useEffect } from "react";
  * Safely reveals elements as they enter the viewport and ensures
  * elements already in view on mount are revealed immediately.
  */
-export function useScrollReveal() {
+export function useScrollReveal(pathname?: string) {
   useEffect(() => {
     if (typeof window === "undefined") return undefined;
 
-    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
-    if (prefersReducedMotion) {
-      document.querySelectorAll("[data-reveal]").forEach((el) => {
-        el.classList.add("revealed");
-      });
-      return undefined;
-    }
-
-    // Reveal elements currently inside or scrolled past the viewport
-    const revealInView = () => {
-      const windowHeight = window.innerHeight || document.documentElement.clientHeight;
-      document.querySelectorAll("[data-reveal]:not(.revealed)").forEach((el) => {
-        const rect = el.getBoundingClientRect();
-        if (rect.top <= windowHeight - 20) {
-          el.classList.add("revealed");
-        }
-      });
-    };
-
-    // Immediate check on initial mount for above-the-fold elements
-    revealInView();
-
     let observer: IntersectionObserver | null = null;
-    if ("IntersectionObserver" in window) {
-      observer = new IntersectionObserver(
-        (entries, obs) => {
-          entries.forEach((entry) => {
-            if (entry.isIntersecting) {
-              entry.target.classList.add("revealed");
-              obs.unobserve(entry.target);
-            }
-          });
-        },
-        {
-          root: null,
-          rootMargin: "0px 0px -25px 0px",
-          threshold: [0, 0.05, 0.1],
-        },
-      );
+    let mutationObserver: MutationObserver | null = null;
+    let onScroll: (() => void) | null = null;
+    let scrollTimer: ReturnType<typeof setTimeout> | null = null;
 
-      const observePending = () => {
-        if (!observer) return;
-        const activeObs = observer;
-        const elements = document.querySelectorAll("[data-reveal]:not(.revealed)");
-        elements.forEach((el) => activeObs.observe(el));
+    // Small delay ensures hydration is complete before observing
+    const timer = setTimeout(() => {
+      const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+      if (prefersReducedMotion) {
+        document.querySelectorAll("[data-reveal]").forEach((el) => {
+          el.classList.add("revealed");
+        });
+        return;
+      }
+
+      // Reveal elements currently inside or scrolled past the trigger threshold
+      const revealInView = () => {
+        const windowHeight = window.innerHeight || document.documentElement.clientHeight;
+        document.querySelectorAll("[data-reveal]:not(.revealed)").forEach((el) => {
+          const rect = el.getBoundingClientRect();
+          // Trigger when element enters ~30-40px into viewport (10-20% of section)
+          if (rect.top <= windowHeight - 30 && rect.bottom >= 0) {
+            el.classList.add("revealed");
+            observer?.unobserve(el);
+          }
+        });
       };
 
-      observePending();
+      revealInView();
 
-      // Listen for DOM changes when Firebase data loads or components re-render
-      const mutationObserver = new MutationObserver(() => {
+      if ("IntersectionObserver" in window) {
+        observer = new IntersectionObserver(
+          (entries, obs) => {
+            entries.forEach((entry) => {
+              if (entry.isIntersecting) {
+                entry.target.classList.add("revealed");
+                // Animate only once - unobserve permanently
+                obs.unobserve(entry.target);
+              }
+            });
+          },
+          {
+            root: null,
+            rootMargin: "0px 0px -30px 0px", // Trigger when ~10-20% enters viewport
+            threshold: [0, 0.05, 0.1],
+          },
+        );
+
+        const observePending = () => {
+          if (!observer) return;
+          const activeObs = observer;
+          const elements = document.querySelectorAll("[data-reveal]:not(.revealed)");
+          elements.forEach((el) => activeObs.observe(el));
+        };
+
         observePending();
-        revealInView();
-      });
 
-      mutationObserver.observe(document.body, { childList: true, subtree: true });
+        // Listen for dynamically loaded CMS/Firebase elements
+        mutationObserver = new MutationObserver(() => {
+          observePending();
+          revealInView();
+        });
 
-      // Fast-scroll safety check: if user scrolls rapidly
-      let scrollTimer: ReturnType<typeof setTimeout>;
-      const onScroll = () => {
-        clearTimeout(scrollTimer);
-        scrollTimer = setTimeout(revealInView, 60);
-      };
-      window.addEventListener("scroll", onScroll, { passive: true });
+        mutationObserver.observe(document.body, { childList: true, subtree: true });
 
-      return () => {
-        observer?.disconnect();
-        mutationObserver.disconnect();
-        window.removeEventListener("scroll", onScroll);
-        clearTimeout(scrollTimer);
-      };
-    } else {
-      // Fallback for browsers without IntersectionObserver
-      document.querySelectorAll("[data-reveal]").forEach((el) => {
-        el.classList.add("revealed");
-      });
-      return undefined;
-    }
-  }, []);
+        // Scroll listener for fast scroll / fallback
+        onScroll = () => {
+          if (scrollTimer) clearTimeout(scrollTimer);
+          scrollTimer = setTimeout(revealInView, 40);
+        };
+        window.addEventListener("scroll", onScroll, { passive: true });
+      } else {
+        // Fallback for older browsers
+        document.querySelectorAll("[data-reveal]").forEach((el) => {
+          el.classList.add("revealed");
+        });
+      }
+    }, 100);
+
+    return () => {
+      clearTimeout(timer);
+      if (scrollTimer) clearTimeout(scrollTimer);
+      if (onScroll) window.removeEventListener("scroll", onScroll);
+      observer?.disconnect();
+      mutationObserver?.disconnect();
+    };
+  }, [pathname]);
 }

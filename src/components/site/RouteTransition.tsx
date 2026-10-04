@@ -232,6 +232,7 @@ export function RouteTransition({ children, pathname }: RouteTransitionProps) {
       <div
         id="pk-page-transition-overlay"
         aria-hidden="true"
+        suppressHydrationWarning
         className={`fixed inset-0 z-[999998] flex items-center justify-center bg-[#07172f]/45 backdrop-blur-sm select-none transition-all ease-out duration-200 ${
           isVisible
             ? "opacity-100 pointer-events-auto"

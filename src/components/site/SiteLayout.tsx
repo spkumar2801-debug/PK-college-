@@ -10,7 +10,7 @@ import { useScrollReveal } from "@/hooks/useScrollReveal";
 export function PublicLayout({ children }: { children: ReactNode }) {
   const store = useCollegeStore();
   const pathname = useRouterState({ select: (s) => s.location.pathname });
-  useScrollReveal();
+  useScrollReveal(pathname);
 
   useEffect(() => {
     const customFavicon = store.siteSettings?.faviconUrl || store.siteSettings?.logoUrl;

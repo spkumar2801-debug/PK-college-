@@ -30,6 +30,22 @@ export function CollegeHeader() {
     setOpenDropdown(null);
   }, [pathname]);
 
+  useEffect(() => {
+    if (mobileOpen) {
+      document.body.style.overflow = "hidden";
+      const handleKeyDown = (e: KeyboardEvent) => {
+        if (e.key === "Escape") setMobileOpen(false);
+      };
+      window.addEventListener("keydown", handleKeyDown);
+      return () => {
+        document.body.style.overflow = "";
+        window.removeEventListener("keydown", handleKeyDown);
+      };
+    } else {
+      document.body.style.overflow = "";
+    }
+  }, [mobileOpen]);
+
   const latestNotice = announcements[0] || {
     id: "default",
     title: "B.Tech Admissions Process Guidelines — Notification for Academic Session",
@@ -149,43 +165,34 @@ export function CollegeHeader() {
       {/* 2A. Dedicated Mobile & Tablet Header (< 1024px: 320px to 834px) */}
       <div className="lg:hidden mobile-header-bar bg-white border-b border-slate-200">
         <div className="college-container">
-          <div className="mobile-header-grid">
-            {/* LEFT: PK Logo/Mark */}
+          <div className="flex items-center justify-between gap-2 py-2 w-full">
+            {/* LEFT: PK Logo/Mark + Title */}
             <Link
               to="/"
-              className="mobile-header-logo-link"
+              className="flex items-center gap-2 min-w-0 flex-1 no-underline"
               aria-label={`${site.name} Home`}
             >
-              <CollegeCrest className="w-[36px] h-[36px] xs:w-[40px] xs:h-[40px] sm:w-[46px] sm:h-[46px] flex-shrink-0" />
-            </Link>
-
-            {/* CENTER: PK COLLEGE OF ENGINEERING & TECHNOLOGY */}
-            <Link
-              to="/"
-              className="mobile-header-title-link min-w-0"
-              aria-label={`${site.name} Home`}
-            >
-              <div className="mobile-header-title">
-                <span>PK College of Engineering</span>{" "}
-                <span className="mobile-header-title-accent">& Technology</span>
-              </div>
-              <div className="mobile-header-subtitle">
-                {site.affiliations}
+              <CollegeCrest className="w-8 h-8 min-[360px]:w-9 min-[360px]:h-9 shrink-0" />
+              <div className="min-w-0 flex-1">
+                <span className="block text-[#0b224d] font-black text-[11px] min-[360px]:text-[12px] leading-tight tracking-tight uppercase truncate">
+                  PK COLLEGE OF ENGINEERING &amp;
+                </span>
+                <span className="block text-[#991b1b] font-black text-[11px] min-[360px]:text-[12px] leading-tight tracking-tight uppercase">
+                  TECHNOLOGY
+                </span>
               </div>
             </Link>
 
-            {/* RIGHT: Hamburger Menu Button (44px x 44px min touch target, always clickable) */}
-            <div className="mobile-header-right">
-              <button
-                type="button"
-                onClick={() => setMobileOpen(!mobileOpen)}
-                className="mobile-hamburger-btn"
-                aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
-                aria-expanded={mobileOpen}
-              >
-                {mobileOpen ? <X size={22} className="text-[#991b1b]" /> : <Menu size={22} />}
-              </button>
-            </div>
+            {/* RIGHT: Hamburger Menu Button */}
+            <button
+              type="button"
+              onClick={() => setMobileOpen(!mobileOpen)}
+              className="w-9 h-9 min-[360px]:w-10 min-[360px]:h-10 flex items-center justify-center rounded-lg border border-slate-200 bg-white text-slate-800 shrink-0 shadow-xs hover:bg-slate-50 transition-colors"
+              aria-label={mobileOpen ? "Close navigation menu" : "Open navigation menu"}
+              aria-expanded={mobileOpen}
+            >
+              {mobileOpen ? <X size={20} className="text-[#991b1b]" /> : <Menu size={20} className="min-[360px]:w-[22px] min-[360px]:h-[22px]" />}
+            </button>
           </div>
         </div>
       </div>
@@ -279,19 +286,19 @@ export function CollegeHeader() {
       {/* 4. Live Right-to-Left Continuous Announcement Marquee Ticker (Smooth, No Jumps, Pause on Hover) */}
       {announcements.length > 0 && (
         <div
-          className="announcement-ticker-bar bg-slate-50 border-b border-slate-200 py-1.5 sm:py-2 overflow-hidden w-full select-none"
+          className="announcement-ticker-bar bg-slate-100/95 border-b border-slate-200/90 py-1 sm:py-1.5 overflow-hidden w-full select-none"
           role="region"
           aria-label="Latest College Announcements"
         >
           <div className="college-container flex items-center gap-2 sm:gap-3 w-full">
-            {/* Ticker Indicator Badge */}
-            <div className="inline-flex items-center gap-1.5 bg-[#991b1b] text-white text-[10px] sm:text-[11px] font-extrabold uppercase px-2.5 py-1 rounded flex-shrink-0 tracking-wider shadow-xs z-10">
-              <span className="w-2 h-2 rounded-full bg-amber-400 animate-ping inline-block" />
+            {/* Ticker Indicator Badge matching screenshot */}
+            <div className="inline-flex items-center gap-1.5 bg-[#b91c1c] text-white text-[10px] sm:text-[11px] font-extrabold uppercase px-2.5 py-1 rounded flex-shrink-0 tracking-wider shadow-xs z-10">
+              <span className="w-2 h-2 rounded-full bg-amber-400 inline-block" />
               <span>Latest News</span>
             </div>
 
             {/* Seamless Infinite Continuous Marquee (Translate 0% to -50%) */}
-            <div className="ticker-marquee-container flex-1 overflow-hidden relative">
+            <div className="ticker-marquee-container flex-1 min-w-0 overflow-hidden relative">
               <div className="ticker-marquee-track">
                 {/* 2 Identical tracks for seamless infinite looping */}
                 {[0, 1].map((copyIndex) => (
@@ -341,112 +348,154 @@ export function CollegeHeader() {
         </div>
       )}
 
-      {/* 5. Mobile Navigation Slide-Down Drawer (Smooth Accordions, Touch Targets, Contact info, NO Admin link) */}
+      {/* 5. Mobile Navigation Slide-Over Drawer */}
       {mobileOpen && (
-        <div className="lg:hidden bg-white border-b-4 border-[#0b224d] shadow-2xl animate-in slide-in-from-top-2 duration-200 max-h-[85vh] overflow-y-auto overscroll-contain">
-          <div className="college-container py-4">
-            {/* Mobile Apply CTA button */}
-            <div className="mb-3">
+        <div className="fixed inset-0 z-50 lg:hidden flex justify-end" role="dialog" aria-modal="true" aria-label="Mobile Navigation Menu">
+          {/* Backdrop */}
+          <div
+            className="fixed inset-0 bg-[#07172f]/60 backdrop-blur-xs transition-opacity duration-300"
+            onClick={() => setMobileOpen(false)}
+            aria-hidden="true"
+          />
+
+          {/* Drawer Container (width: min(100vw, 400px), height: 100dvh) */}
+          <div
+            className="relative z-10 h-[100dvh] max-h-[100dvh] w-full max-w-[400px] bg-white shadow-2xl flex flex-col box-border overflow-hidden animate-in slide-in-from-right duration-300"
+            style={{ width: "min(100vw, 400px)" }}
+          >
+            {/* Fixed Drawer Header: LOGO + COLLEGE NAME + CLOSE BUTTON */}
+            <div className="flex items-center justify-between p-3.5 sm:p-4 border-b border-slate-200 bg-white shrink-0">
               <Link
-                to="/admissions"
-                className="w-full min-h-[44px] flex items-center justify-center gap-2 bg-[#991b1b] hover:bg-[#7f1d1d] text-white rounded font-bold text-xs uppercase tracking-wider shadow-sm transition-colors py-2.5 px-4"
+                to="/"
+                className="flex items-center gap-2.5 min-w-0 flex-1 no-underline"
                 onClick={() => setMobileOpen(false)}
               >
-                <GraduationCap size={16} />
-                <span>Admissions & Enquiries 2026-27</span>
-              </Link>
-            </div>
-
-            {/* Mobile Admissions Helpdesk Card (Moved from header into drawer so mobile header has zero overlap) */}
-            <div className="mb-4 p-3 bg-amber-50/90 border border-amber-200 rounded-lg flex items-center justify-between">
-              <div className="min-w-0 pr-2">
-                <span className="text-[10px] text-amber-900 font-bold uppercase tracking-wider block">
-                  Admissions Helpdesk
-                </span>
-                <a
-                  href={`tel:${site.admissionsPhone}`}
-                  className="text-xs font-extrabold text-[#0b224d] hover:text-[#991b1b] transition-colors truncate block"
-                >
-                  {site.admissionsPhone}
-                </a>
-              </div>
-              <span className="code-badge text-[10px] px-2 py-0.5 shrink-0">{site.counselingCode}</span>
-            </div>
-
-            {/* Navigation links list */}
-            <nav className="flex flex-col divide-y divide-slate-100 border-t border-slate-100" aria-label="Mobile Navigation">
-              {navItems.map((item) => (
-                <div key={item.label} className="py-1">
-                  {item.dropdown ? (
-                    <div>
-                      <button
-                        onClick={() =>
-                          setMobileExpandedSection(
-                            mobileExpandedSection === item.label ? null : item.label,
-                          )
-                        }
-                        className="w-full min-h-[44px] flex items-center justify-between text-left font-bold text-[#0b224d] text-sm py-2 px-1 hover:text-[#991b1b] transition-colors"
-                        aria-expanded={mobileExpandedSection === item.label}
-                      >
-                        <span>{item.label}</span>
-                        <ChevronDown
-                          size={18}
-                          className={`text-slate-500 transition-transform duration-200 ${
-                            mobileExpandedSection === item.label ? "rotate-180 text-amber-600" : ""
-                          }`}
-                        />
-                      </button>
-                      {mobileExpandedSection === item.label && (
-                        <div className="pl-3 mb-2 space-y-1 border-l-2 border-amber-500 py-1 bg-slate-50/70 rounded-r">
-                          {item.dropdown.map((sub) => (
-                            <Link
-                              key={sub.label}
-                              to={sub.href}
-                              className="block min-h-[40px] flex items-center text-xs font-semibold text-slate-700 hover:text-[#0b224d] hover:bg-white px-2 py-1.5 rounded transition-colors"
-                              onClick={() => setMobileOpen(false)}
-                            >
-                              {sub.label}
-                            </Link>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <Link
-                      to={item.href}
-                      className="block min-h-[44px] flex items-center font-bold text-[#0b224d] text-sm py-2 px-1 hover:text-[#991b1b] transition-colors"
-                      onClick={() => setMobileOpen(false)}
-                    >
-                      {item.label}
-                    </Link>
-                  )}
+                <CollegeCrest className="w-8 h-8 shrink-0" />
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[#0b224d] font-black text-[11px] min-[360px]:text-xs leading-tight uppercase tracking-tight truncate">
+                    PK College of Engineering &amp;
+                  </span>
+                  <span className="block text-[#991b1b] font-black text-[11px] min-[360px]:text-xs leading-tight uppercase tracking-tight">
+                    Technology
+                  </span>
                 </div>
-              ))}
-            </nav>
+              </Link>
+              <button
+                type="button"
+                onClick={() => setMobileOpen(false)}
+                className="w-9 h-9 flex items-center justify-center rounded-lg border border-slate-200 text-slate-600 hover:text-slate-900 hover:bg-slate-100 transition-colors shrink-0 ml-2"
+                aria-label="Close navigation menu"
+              >
+                <X size={20} />
+              </button>
+            </div>
 
-            {/* Mobile Institutional Helpdesk Card (Contact info tucked inside drawer) */}
-            <div className="mt-4 p-4 bg-slate-50 border border-slate-200 rounded-lg space-y-2.5 text-xs text-slate-700">
-              <div className="flex items-center justify-between border-b border-slate-200 pb-2">
-                <span className="font-extrabold uppercase text-[10px] tracking-wider text-[#b45309]">
-                  Institutional Desk
-                </span>
-                <span className="code-badge">{site.counselingCode}</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <Phone size={14} className="text-amber-600 flex-shrink-0" />
-                <a href={`tel:${site.phone}`} className="font-semibold text-slate-900 hover:text-amber-600">
-                  {site.phone}
-                </a>
-              </div>
-              <div className="flex items-center gap-2">
-                <Mail size={14} className="text-amber-600 flex-shrink-0" />
-                <a href={`mailto:${site.email}`} className="font-semibold text-slate-900 hover:text-amber-600 truncate">
-                  {site.email}
-                </a>
-              </div>
-              <div className="flex items-start gap-2">
-                <MapPin size={14} className="text-amber-600 flex-shrink-0 mt-0.5" />
-                <span className="text-slate-600 leading-snug">{site.location}</span>
+            {/* Scrollable Navigation Content Area */}
+            <div className="flex-1 overflow-y-auto overscroll-contain px-3.5 sm:px-4 py-3 space-y-3 min-h-0">
+              {/* Admissions CTA */}
+              <Link
+                to="/admissions"
+                className="w-full min-h-[44px] flex items-center justify-center gap-2 bg-[#991b1b] hover:bg-[#7f1d1d] text-white rounded-lg font-bold text-xs uppercase tracking-wider shadow-xs transition-colors py-2.5 px-3"
+                onClick={() => setMobileOpen(false)}
+              >
+                <GraduationCap size={16} className="shrink-0" />
+                <span>Admissions 2026–27</span>
+              </Link>
+
+              {/* Navigation Items (15px font size, medium/semibold, subtle separators) */}
+              <nav className="flex flex-col divide-y divide-slate-100 border-y border-slate-100" aria-label="Mobile Navigation Links">
+                {navItems.map((item) => (
+                  <div key={item.label} className="py-0.5">
+                    {item.dropdown ? (
+                      <div>
+                        <button
+                          type="button"
+                          onClick={() =>
+                            setMobileExpandedSection(
+                              mobileExpandedSection === item.label ? null : item.label,
+                            )
+                          }
+                          className="w-full min-h-[44px] flex items-center justify-between text-left font-semibold text-slate-800 text-[15px] py-2.5 px-1 hover:text-[#0b224d] transition-colors"
+                          aria-expanded={mobileExpandedSection === item.label}
+                        >
+                          <span>{item.label}</span>
+                          <ChevronDown
+                            size={16}
+                            className={`text-slate-400 transition-transform duration-200 ${
+                              mobileExpandedSection === item.label ? "rotate-180 text-amber-600" : ""
+                            }`}
+                          />
+                        </button>
+                        {mobileExpandedSection === item.label && (
+                          <div className="pl-3 mb-2 space-y-0.5 border-l-2 border-amber-500 py-1 bg-slate-50/70 rounded-r">
+                            {item.dropdown.map((sub) => (
+                              <Link
+                                key={sub.label}
+                                to={sub.href}
+                                className="block min-h-[40px] flex items-center text-[13px] font-medium text-slate-700 hover:text-[#0b224d] hover:bg-white px-2 py-1.5 rounded transition-colors"
+                                onClick={() => setMobileOpen(false)}
+                              >
+                                {sub.label}
+                              </Link>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    ) : (
+                      <Link
+                        to={item.href}
+                        className="block min-h-[44px] flex items-center font-semibold text-slate-800 text-[15px] py-2.5 px-1 hover:text-[#0b224d] transition-colors"
+                        onClick={() => setMobileOpen(false)}
+                      >
+                        {item.label}
+                      </Link>
+                    )}
+                  </div>
+                ))}
+              </nav>
+
+              {/* Institutional Desk Card (Clean information panel, fully responsive, zero clipping) */}
+              <div className="mt-4 mb-2 p-3 sm:p-3.5 bg-white border border-[#0b224d]/15 rounded-lg shadow-xs w-full max-w-full box-border">
+                <div className="flex items-center justify-between pb-2 border-b border-slate-100 mb-2.5">
+                  <div className="flex items-center gap-1.5">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 shrink-0" aria-hidden="true" />
+                    <span className="font-extrabold uppercase text-[10px] tracking-wider text-[#0b224d]">
+                      Institutional Desk
+                    </span>
+                  </div>
+                  <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded bg-amber-50 text-amber-900 border border-amber-200/80 shrink-0">
+                    PKEC–2026
+                  </span>
+                </div>
+
+                <div className="space-y-2 text-xs text-slate-600">
+                  <div className="flex items-start gap-2">
+                    <Phone size={13} className="text-amber-600 shrink-0 mt-0.5" />
+                    <a
+                      href={`tel:${site.phone}`}
+                      className="font-semibold text-slate-800 hover:text-amber-600 transition-colors break-words leading-tight"
+                    >
+                      {site.phone}
+                    </a>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <Mail size={13} className="text-amber-600 shrink-0 mt-0.5" />
+                    <a
+                      href={`mailto:${site.email}`}
+                      className="font-semibold text-slate-800 hover:text-amber-600 transition-colors break-all leading-tight"
+                    >
+                      {site.email}
+                    </a>
+                  </div>
+
+                  <div className="flex items-start gap-2">
+                    <MapPin size={13} className="text-amber-600 shrink-0 mt-0.5" />
+                    <span className="text-slate-600 leading-snug break-words">
+                      {site.location}
+                    </span>
+                  </div>
+                </div>
               </div>
             </div>
           </div>
